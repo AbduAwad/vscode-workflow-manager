@@ -27,7 +27,7 @@
       "title": "WorkflowManager",
       "properties": {
         "workflowManager.server": {
-          "type": "string",
+          "type": "array",
           "default": "127.0.0.1",
           "scope": "application",
           "format": "ipv4",

@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager'); // Gets the configuration settings from the settings.json file
-	const server : string   = config.get("server")   ?? "";
+	const server : string   = config.get("server")[0]   ?? ""; // default server is the first server in the NSP server list.
 	const username : string = config.get("username") ?? "";
 	const port : string = config.get("port") ?? "";
 	const timeout : number = config.get("timeout") ?? 20000;
@@ -27,7 +27,6 @@ export function activate(context: vscode.ExtensionContext) {
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
 
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
-	
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
 	context.subscriptions.push(vscode.window.registerFileDecorationProvider(wfmProvider));
 	wfmProvider.extContext=context;
@@ -37,8 +36,15 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 	console.log(header)
-	// // PUBLISHING COMMANDS
 
+	// NSP - Multiple Server Support:
+	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
+	statusbar_server.command = 'nokia-wfm.setServer';
+	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
+	statusbar_server.text = 'NSP: ' + server;
+	statusbar_server.show();
+
+	// // PUBLISHING COMMANDS
 	// // --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.validate', async () => {
 		wfmProvider.validate(); // validate an action, workflow, or template.
@@ -108,6 +114,46 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.executeCommand('git.clone', 'https://github.com/nokia/nsp-workflow.git', gitPath);
 		}
 	}));
+
+	// This will switch NSP Servers - Beta Version for now
+	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
+		let servers : Array<string> = config.get("server");
+		const quickPick = vscode.window.createQuickPick();
+		quickPick.placeholder = 'Select NSP Server...';
+		quickPick.buttons = [{ iconPath: new vscode.ThemeIcon('add') }];
+		quickPick.onDidTriggerButton(() => { // add a server
+			vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' }).then((value) => {
+				if (value) {
+					if (!servers.includes(value)) {
+						servers.push(value);
+						console.log("servers: ", servers);
+						config.update('server', servers, vscode.ConfigurationTarget.Global);
+						quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
+						quickPick.show();
+					} else {
+						vscode.window.showInformationMessage('Server already exists');
+					}
+				}
+			});
+		});
+
+		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
+		quickPick.show();
+		quickPick.onDidChangeSelection(async selection => {
+			if (selection[0]) {
+				statusbar_server.text = 'NSP: ' + selection[0].label;
+				let new_servers = [];
+				new_servers.push(selection[0].label);
+				servers.filter(server => server !== selection[0].label).forEach(server => new_servers.push(server));
+				console.log("new_servers: ", new_servers);
+				await config.update('server', new_servers, vscode.ConfigurationTarget.Global);
+				quickPick.hide();
+				quickPick.dispose();
+			}
+			vscode.commands.executeCommand('workbench.action.reloadWindow'); // reactivate the extension
+			// Figure out a way to attribute usernames/passwords to a server
+		});	
+	}));
 	
 	// Set Password for WFM
 	vscode.commands.registerCommand('nokia-wfm.setPassword', async () => {
@@ -116,12 +162,12 @@ export function activate(context: vscode.ExtensionContext) {
 		  title: "Password"
 		}) ?? '';
 		
-		if(passwordInput !== ''){
+		if(passwordInput !== '') {
 			secretStorage.store("nsp_wfm_password", passwordInput);
 		};
 	  });
 	
-	  // checks if
+	// checks if
 	vscode.workspace.onDidChangeWorkspaceFolders(async () => {
 		const workspaceFolders =  vscode.workspace.workspaceFolders ?  vscode.workspace.workspaceFolders : [];
 		if (workspaceFolders.find( ({name}) => name === 'nsp-workflow')) {
