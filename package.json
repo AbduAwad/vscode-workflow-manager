@@ -26,12 +26,21 @@
     "configuration": {
       "title": "WorkflowManager",
       "properties": {
-        "workflowManager.server": {
-          "type": "array",
-          "default": "127.0.0.1",
+        "workflowManager.activeServer": {
+          "type": "string",
           "scope": "application",
-          "format": "ipv4",
-          "description": "NSP server address"
+          "description": "NSP server address",
+          "readOnly": true
+        },
+        "workflowManager.servers": {
+          "type": "array",
+          "default": ["127.0.0.1"],
+          "items":
+          {
+            "type": "string"
+          },
+          "scope": "application",
+          "description": "Active NSP server address"
         },
         "workflowManager.username": {
           "type": "string",

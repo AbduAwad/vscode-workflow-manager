@@ -129,8 +129,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
             }
         }
 
-		this.password = await this.secretStorage.get("nsp_wfm_password");
-
         if (!this.authToken) {
             this.authToken = new Promise((resolve, reject) => {
 				
