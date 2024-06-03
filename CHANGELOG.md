@@ -103,3 +103,33 @@ ____
     - Users cannot delete any of the workflow files, as each of the files is associateed with the workflow. In order to delete a workflow and its associative files, the user must delete the associative workflow folder.
     - Users cannot rename any of the three workflow files as the name of the view, the definition, and the workflow folder must be the same. Renaming workflows is supported by renaming the associative workflow folder which will automatically rename the workflow files within that folder to match. 
 ____
+
+## [2.0.1]
+**Updates:** 
+* Set Server Support Added
+* Users can click on the status bar Item that displays the current NSP server the extension is connected to.
+
+____
+
+* Example:
+
+![alt text](media/statusbar.png)
+____
+  
+* Once the above status bar is clicked the a drop-down menu will appear allowing the user to select an NSP server for the extension to connect to.
+
+____
+
+* Example:
+
+![alt text](media/servers.png)
+____
+
+* Caching of NSP user/pass credentials:
+
+    * After selecting an NSP server from the dropdown menu, the user is prompted to enter an NSP username and password. If the credentials are valid and the connection to the NSP is successful, the credentials are cached in VS Code Secret Storage. As a result, the user can select the server from the dropdown menu to automatically connect without re-entering credentials.
+
+* NSP Credentials Error-checking:
+
+    * If a user enters incorrect credentials an error message will be thrown, and they will be re-prompted to select a server.
+    * Also if the Authentication Token for NSP fails for any reason an error message will be thrown, and the user will also be re-prompted to select a server
