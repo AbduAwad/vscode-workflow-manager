@@ -101,7 +101,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// --- Set Workflow Manager NSP Server when the user clicks the server button
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
-		wfmProvider._getNSPCredentials(server, config, statusbar_server, secretStorage)
+		wfmProvider.setServer(server, config, statusbar_server, secretStorage)
 	}));
 
 	// // Generate schema for validation

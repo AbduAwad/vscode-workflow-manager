@@ -2276,7 +2276,14 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		});
 	}
 
-	async _getNSPCredentials(server, config, statusbar_server, secretStorage): Promise<void> {
+	/**
+	 * Method to set the NSP server
+	 * @param {string} server The server to set
+	 * @param {vscode.WorkspaceConfiguration} config The configuration object
+	 * @param {vscode.StatusBarItem} statusbar_server The status bar item
+	 * @param {vscode.SecretStorage} secretStorage The secret storage storing cached credentials
+	*/
+	async setServer(server: string, config: vscode.WorkspaceConfiguration, statusbar_server: vscode.StatusBarItem, secretStorage: vscode.SecretStorage): Promise<void> {
 		console.log("Executing _getNSPCredentials()");
 		let servers : Array<string> = config.get("servers");
 		const quickPick = vscode.window.createQuickPick();
@@ -2338,6 +2345,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		});	
 	}
 
+	
 	// vscode.FileSystemProvider implementation ----------------
 
 	/**
