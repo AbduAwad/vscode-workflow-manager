@@ -13,7 +13,6 @@ SPDX-License-Identifier: BSD-3-Clause
 Nokia logo is trademark of Nokia
 
 ## Features
-
 The vsCode extension for NSP WFM allows a user to:
 
 * Connect to a remote WFM.
@@ -27,11 +26,9 @@ The vsCode extension for NSP WFM allows a user to:
 * Do all abovementioned actions on a local repository (local folder, git).
 
 ## Requirements
-
 This package uses YAML, FETCH, vscode-URI and base-64 packages. For FETCH, it is importan to install 2.6.6 version. See other requirements in package.json.
 
 ## Install
-
 To compile and generate the VSIX for installation, run:
 
     npm install .
@@ -40,7 +37,6 @@ To compile and generate the VSIX for installation, run:
 
 
 ## VsCode Extension Development
-
 1. To compile the typescript extension run:
 
 ```bash
@@ -55,7 +51,6 @@ npm run compile
 ____
 
 ## Contribute
-
 Contributions are welcome via normal pull request procedure.
 
 ## Extension Settings
@@ -69,7 +64,6 @@ To make the extension work, make sure you configure the following attributed in 
 * `Local storage folder`: Folder where workflows are copied, if the above flag is enabled.
 
 ## Known Issues
-
 * Minor errors are reported by the vsCode. However, the extension runs without aparent issue. To be reviewed.
 * First version. Will require deeper error control.
 * `process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"` disbles SSL verification (not recommended).
@@ -78,22 +72,18 @@ To make the extension work, make sure you configure the following attributed in 
 * In-line validation only works for workflows, not for actions (requires JSON schema for actions).
 
 ## TODOs
-
-* Fix Know Issues. Review/Optimize code.
+* Fix Known Issues. Review/Optimize code.
 
 ## Release Notes
-
-See release changes in [CHANGLOG](./CHANGELOG.md)
+See release changes in [CHANGELOG](./CHANGELOG.md)
 
 ## Contributors
-
 * [Alejandro Aguado](mailto:alejandro.aguado_martin@nokia.com)
 * [Sven Wisotzky](mailto:sven.wisotzky@nokia.com)
 * [Abdulrahman Awad](mailto:abdulrahmansawad@gmail.com)
 
 
 ## Important links
-
 * [Developer portal](https://network.developer.nokia.com/learn/23_4/network-programmability-automation-frameworks/workflow-manager-framework/wfm-workflow-development/)
 
 

@@ -129,9 +129,10 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
             }
         }
 
+		this.password = await this.secretStorage.get(this.nspAddr + '_password');
         if (!this.authToken) {
             this.authToken = new Promise((resolve, reject) => {
-				
+
                 console.log("No valid auth-token; getting a new one...");
                 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -152,7 +153,14 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
                     signal: timeout.signal
                 }).then(response => {
                     console.log("POST", url, response.status);
-                    if (!response.ok) {
+					if (response.status === 401) { // Unauthorized: Invalid username or password
+						vscode.window.showErrorMessage("WFM: Incorrect NSP username or password.");
+						reject("Authentication Error: Incorrect username or password");
+						this.secretStorage.delete(this.nspAddr + '_username'); // deletes enteries from Cached VsCode Secret Storage
+						this.secretStorage.delete(this.nspAddr + '_password'); // deletes enteries from Cached VsCode Secret Storage
+						vscode.commands.executeCommand('nokia-wfm.setServer'); // have the user re-pick an NSP and re-enter credentials
+						return undefined; // Explicitly return undefined
+                    } else if (!response.ok) {
 						vscode.window.showErrorMessage("WFM: NSP Auth Error");
                         reject("Authentication Error!");
                         throw new Error("Authentication Error!");
@@ -163,7 +171,17 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
                     setTimeout(() => this._revokeAuthToken(), 600000); // automatically revoke token after 10min
                 }).catch(error => {
                     console.error(error.message);
-					vscode.window.showWarningMessage("NSP is not reachable");
+					if (error.name === 'AbortError') {
+						vscode.window.showWarningMessage("WFM: Request to NSP timed out");
+					} else if (error.code === 'ECONNREFUSED') { // this means that no NSP exists at the given endpoint
+						vscode.window.showErrorMessage("WFM: Unable to connect to NSP server at endpoint. Connection refused");
+						this.secretStorage.delete(this.nspAddr + '_username'); // deletes enteries from Cached VsCode Secret Storage
+						this.secretStorage.delete(this.nspAddr + '_password'); // deletes enteries from Cached VsCode Secret Storage
+						vscode.commands.executeCommand('nokia-wfm.setServer'); // have the user re-pick an NSP and re-enter credentials
+						return undefined; // Explicitly return undefined
+					} else {
+						vscode.window.showErrorMessage("WFM: NSP is not reachable");
+					}
                     resolve(undefined);
                 });
             });
@@ -2256,6 +2274,68 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
   		editor.edit(editBuilder => {
 			editBuilder.replace(new vscode.Range(doc.lineAt(0).range.start, doc.lineAt(doc.lineCount - 1).range.end), JSON.stringify(uijson, null, 4));
 		});
+	}
+
+	async _getNSPCredentials(server, config, statusbar_server, secretStorage): Promise<void> {
+		console.log("Executing _getNSPCredentials()");
+		let servers : Array<string> = config.get("servers");
+		const quickPick = vscode.window.createQuickPick();
+		quickPick.placeholder = 'Select NSP Server...';
+		quickPick.buttons = [{ iconPath: new vscode.ThemeIcon('add') }];
+		quickPick.onDidTriggerButton(() => { // add a server
+			vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' }).then((value) => {
+				if (value) { // if the user enters a value
+					if (!servers.includes(value)) {
+						servers.push(value);
+						console.log("servers: ", servers);
+						config.update('servers', servers, vscode.ConfigurationTarget.Global); // update the servers list
+						quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
+						quickPick.show();
+					} else {
+						vscode.window.showInformationMessage('Server already exists');
+					}
+				}
+			});
+		});
+
+		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
+		quickPick.show();
+		quickPick.onDidChangeSelection(async selection => { // when a server is selected
+			if (selection[0]) {
+				statusbar_server.text = 'NSP: ' + selection[0].label;
+				let new_servers = [];
+				new_servers.push(selection[0].label);
+				servers.filter(server => server !== selection[0].label).forEach(server => new_servers.push(server)); // move selected server to the top of the list
+				console.log("new_servers: ", new_servers);
+				await config.update('servers', new_servers, vscode.ConfigurationTarget.Global);
+				quickPick.hide();
+				quickPick.dispose();
+			}
+			if (await secretStorage.get(selection[0].label + '_username') != undefined && await secretStorage.get(selection[0].label + '_password') != undefined) {
+				console.log("Username and Password are cached");
+				console.log('Username: ', await secretStorage.get(selection[0].label + '_username'));
+				await config.update('username', await secretStorage.get(selection[0].label + '_username'), vscode.ConfigurationTarget.Global);
+			} else { // If the username and password are not cached, prompt the user for the username and password
+				const usernameInput: string = await vscode.window.showInputBox({
+					prompt: 'Enter Username...',
+				}) ?? '';
+				if(usernameInput !== '') {
+					secretStorage.store(selection[0].label + '_username', usernameInput);
+					await config.update('username', usernameInput, vscode.ConfigurationTarget.Global);
+				};
+				
+				const passwordInput: string = await vscode.window.showInputBox({
+					password: true, 
+					prompt: 'Enter Password...'
+				}) ?? '';
+				if(passwordInput !== '') {
+					secretStorage.store(selection[0].label + '_password', passwordInput);
+				};
+			}
+			console.log('server: ', server);
+			await config.update('activeServer', server, vscode.ConfigurationTarget.Global);
+			vscode.commands.executeCommand('workbench.action.reloadWindow'); // reactivate the extension
+		});	
 	}
 
 	// vscode.FileSystemProvider implementation ----------------

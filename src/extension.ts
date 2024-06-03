@@ -16,6 +16,9 @@ import { WorkflowManagerProvider, CodelensProvider } from './providers';
 // This function is ran once the the extension is activated:
 export async function activate(context: vscode.ExtensionContext) {  
 
+	// delete all keys in the secret storage:
+	
+
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager'); // Gets the configuration settings from the settings.json file
 	const server : string   = config.get("servers")[0]   ?? ""; // default server is the first server in the NSP server list.
@@ -25,6 +28,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	const localsave : boolean = config.get("localStorage.enable") ?? false;
 	const localpath : string = config.get("localStorage.folder") ?? "";
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
+	
+	// TESTING OF CREDENTIALS CACHING
+	// async function deleteAll() {
+	// 	const servers : string[] = config.get("servers") ?? [];
+	// 	servers.forEach(async (currServer) => {
+	// 		let l = "";
+	// 		let b = "";
+	// 		l = await secretStorage.get(currServer + '_password');
+	// 		b = await secretStorage.get(currServer + '_username');
+	// 		console.log(currServer + '_password: ' + l);
+	// 		console.log(currServer + '_username: ' + b);
+	// 		// secretStorage.delete(currServer + '_password');
+	// 		// secretStorage.delete(currServer + '_username');
+	// 	});
+	// }
+	// deleteAll();
 
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
@@ -75,9 +94,14 @@ export async function activate(context: vscode.ExtensionContext) {
 		wfmProvider.upload();
 	}));
 
-	// generate input form for workflow view
+	//  --- generate input form for workflow view
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.generateForm', async () => {
 		wfmProvider.generateForm();
+	}));
+
+	// --- Set Workflow Manager NSP Server when the user clicks the server button
+	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
+		wfmProvider._getNSPCredentials(server, config, statusbar_server, secretStorage)
 	}));
 
 	// // Generate schema for validation
@@ -113,68 +137,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			console.log('clone nsp-workflow to add to workspace');
 			vscode.commands.executeCommand('git.clone', 'https://github.com/nokia/nsp-workflow.git', gitPath);
 		}
-	}));
-
-	// This will switch NSP Servers - Beta Version for now
-	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
-		let servers : Array<string> = config.get("servers");
-		const quickPick = vscode.window.createQuickPick();
-		quickPick.placeholder = 'Select NSP Server...';
-		quickPick.buttons = [{ iconPath: new vscode.ThemeIcon('add') }];
-		quickPick.onDidTriggerButton(() => { // add a server
-			vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' }).then((value) => {
-				if (value) { // if the user enters a value
-					if (!servers.includes(value)) {
-						servers.push(value);
-						console.log("servers: ", servers);
-						config.update('servers', servers, vscode.ConfigurationTarget.Global); // update the servers list
-						quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
-						quickPick.show();
-					} else {
-						vscode.window.showInformationMessage('Server already exists');
-					}
-				}
-			});
-		});
-
-		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
-		quickPick.show();
-		quickPick.onDidChangeSelection(async selection => { // when a server is selected
-			if (selection[0]) {
-				statusbar_server.text = 'NSP: ' + selection[0].label;
-				let new_servers = [];
-				new_servers.push(selection[0].label);
-				servers.filter(server => server !== selection[0].label).forEach(server => new_servers.push(server)); // move selected server to the top of the list
-				console.log("new_servers: ", new_servers);
-				await config.update('servers', new_servers, vscode.ConfigurationTarget.Global);
-				quickPick.hide();
-				quickPick.dispose();
-			}
-			if (await secretStorage.get(selection[0].label + '_username') != undefined && await secretStorage.get(selection[0].label + '_password') != undefined) {
-				console.log("Username and Password are cached");
-				console.log('Username: ', await secretStorage.get(selection[0].label + '_username'));
-				await config.update('username', await secretStorage.get(selection[0].label + '_username'), vscode.ConfigurationTarget.Global);
-			} else { // If the username and password are not cached, prompt the user for the username and password
-				const usernameInput: string = await vscode.window.showInputBox({
-					prompt: 'Enter Username...',
-					value: username
-				}) ?? '';
-				if(usernameInput !== '') {
-					secretStorage.store(selection[0].label + '_username', usernameInput);
-					await config.update('username', usernameInput, vscode.ConfigurationTarget.Global);
-				};
-				
-				const passwordInput: string = await vscode.window.showInputBox({
-					password: true, 
-					prompt: 'Enter Password...'
-				}) ?? '';
-				if(passwordInput !== '') {
-					secretStorage.store(selection[0].label + '_password', passwordInput);
-				};
-			}
-			await config.update('activeServer', server, vscode.ConfigurationTarget.Global);
-			vscode.commands.executeCommand('workbench.action.reloadWindow'); // reactivate the extension
-		});	
 	}));
 	
 	// Set Password for WFM
