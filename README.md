@@ -1,4 +1,4 @@
-# NOKIA Workflow Manager vsCode extension 
+# NOKIA Workflow Manager vsCode extension
 
 This vsCode extension connects to Nokia NSP WFM to facilitate workflow development and delivery.
 
@@ -15,7 +15,7 @@ Nokia logo is trademark of Nokia
 ## Features
 The vsCode extension for NSP WFM allows a user to:
 
-* Connect to a remote WFM.
+* Connect to a remote WFM on any NSP.
 * Download the full workflow, action, and jinja templates list.
 * Create new workflows, actions, and templates (with a predefined template).
 * Access and Edit WFM's workflow definitions, views, and documentations.
@@ -24,6 +24,7 @@ The vsCode extension for NSP WFM allows a user to:
 * Retrieve the status from the latest execution.
 * Access WFM with the right pointers to workflows and executions.
 * Do all abovementioned actions on a local repository (local folder, git).
+* Switch between different NSP endpoints and access different WFM instances.
 
 ## Requirements
 This package uses YAML, FETCH, vscode-URI and base-64 packages. For FETCH, it is importan to install 2.6.6 version. See other requirements in package.json.
@@ -84,7 +85,6 @@ See release changes in [CHANGELOG](./CHANGELOG.md)
 
 
 ## Important links
-* [Developer portal](https://network.developer.nokia.com/learn/23_4/network-programmability-automation-frameworks/workflow-manager-framework/wfm-workflow-development/)
 
-
-**Enjoy!**
+* Nokia Network Developer Portal: [Developer portal](https://network.developer.nokia.com/learn/23_4/network-programmability-automation-frameworks/workflow-manager-framework/wfm-workflow-development/)
+* VsCode Extension API: [VsCode API](https://code.visualstudio.com/api)

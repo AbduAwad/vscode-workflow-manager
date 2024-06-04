@@ -16,9 +16,6 @@ import { WorkflowManagerProvider, CodelensProvider } from './providers';
 // This function is ran once the the extension is activated:
 export async function activate(context: vscode.ExtensionContext) {  
 
-	// delete all keys in the secret storage:
-	
-
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager'); // Gets the configuration settings from the settings.json file
 	const server : string   = config.get("servers")[0]   ?? ""; // default server is the first server in the NSP server list.
@@ -101,7 +98,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// --- Set Workflow Manager NSP Server when the user clicks the server button
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
-		wfmProvider.setServer(server, config, statusbar_server, secretStorage)
+		let updatedConfig = vscode.workspace.getConfiguration('workflowManager');
+		wfmProvider.setServer(server, updatedConfig, statusbar_server, secretStorage); // set Active Workflow Manager NSP Server
 	}));
 
 	// // Generate schema for validation
