@@ -34,7 +34,6 @@
         },
         "workflowManager.servers": {
           "type": "array",
-          "default": ["127.0.0.1"],
           "items":
           {
             "type": "string"
@@ -133,6 +132,11 @@
       ]
     },
     "commands": [
+      {
+        "command": "nokia-wfm.setServer",
+        "title": "Set WFM Extension NSP Server",
+        "category": "WFM"
+      },
       {
         "command": "nokia-wfm.execute",
         "category": "WFM",

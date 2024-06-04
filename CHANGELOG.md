@@ -1,4 +1,4 @@
-# Change Log
+> # Change Log
 
 
 
@@ -76,7 +76,7 @@ Updates:
     - .action for actions
     - .yaml for workflows
     - .jinja for templates
-____
+
 
 ## [2.0.0]
 
@@ -102,7 +102,7 @@ ____
 * Error Checking/Restrictions:
     - Users cannot delete any of the workflow files, as each of the files is associateed with the workflow. In order to delete a workflow and its associative files, the user must delete the associative workflow folder.
     - Users cannot rename any of the three workflow files as the name of the view, the definition, and the workflow folder must be the same. Renaming workflows is supported by renaming the associative workflow folder which will automatically rename the workflow files within that folder to match. 
-____
+
 
 ## [2.0.1]
 ### Updates: Multiple Server Support
@@ -161,4 +161,3 @@ ______
     <img src="media/removeServer.png" width="550" title="hover text">
 </p>
 
-______

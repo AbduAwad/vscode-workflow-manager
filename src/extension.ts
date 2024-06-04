@@ -17,32 +17,16 @@ import { WorkflowManagerProvider, CodelensProvider } from './providers';
 export async function activate(context: vscode.ExtensionContext) {  
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
-	const config = vscode.workspace.getConfiguration('workflowManager'); // Gets the configuration settings from the settings.json file
-	const server : string   = config.get("servers")[0]   ?? ""; // default server is the first server in the NSP server list.
-	const username : string = config.get("username") ?? "";
+	const config = vscode.workspace.getConfiguration('workflowManager');
+	const server : string   = config.get("activeServer")   ?? ""; // active server is the first server in the NSP server list.
+	const username : string = config.get("username") ?? "admin";
 	const port : string = config.get("port") ?? "";
 	const timeout : number = config.get("timeout") ?? 20000;
 	const localsave : boolean = config.get("localStorage.enable") ?? false;
 	const localpath : string = config.get("localStorage.folder") ?? "";
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
-	
-	// TESTING OF CREDENTIALS CACHING
-	// async function deleteAll() {
-	// 	const servers : string[] = config.get("servers") ?? [];
-	// 	servers.forEach(async (currServer) => {
-	// 		let l = "";
-	// 		let b = "";
-	// 		l = await secretStorage.get(currServer + '_password');
-	// 		b = await secretStorage.get(currServer + '_username');
-	// 		console.log(currServer + '_password: ' + l);
-	// 		console.log(currServer + '_username: ' + b);
-	// 		// secretStorage.delete(currServer + '_password');
-	// 		// secretStorage.delete(currServer + '_username');
-	// 	});
-	// }
-	// deleteAll();
-
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
+	
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
 	context.subscriptions.push(vscode.window.registerFileDecorationProvider(wfmProvider));
 	wfmProvider.extContext=context;
@@ -51,14 +35,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	const header = new CodelensProvider(server); 
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
-	console.log(header)
-
-	// NSP - Multiple Server Support:
-	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
-	statusbar_server.command = 'nokia-wfm.setServer';
-	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
-	statusbar_server.text = 'NSP: ' + server;
-	statusbar_server.show();
 
 	// // PUBLISHING COMMANDS
 	// // --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
@@ -96,6 +72,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		wfmProvider.generateForm();
 	}));
 
+	// NSP - Multiple Server Support:
+	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
+	statusbar_server.command = 'nokia-wfm.setServer';
+	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
+	statusbar_server.text = 'NSP: ' + server;
+	statusbar_server.show();
+
 	// --- Set Workflow Manager NSP Server when the user clicks the server button
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
 		let updatedConfig = vscode.workspace.getConfiguration('workflowManager');
@@ -105,17 +88,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	// // Generate schema for validation
 	wfmProvider.generateSchema();
 
-	// Apply YAML language to all wfm:/actions/* and wfm:/workflows/* files
-	let fileAssociations : {string: string} = vscode.workspace.getConfiguration('files').get('associations') || <{string: string}>{};
-    fileAssociations["/actions/*"] = "yaml"; // apply YAML language to all wfm:/actions/* files
-	fileAssociations["/templates/*"] = "jinja"; // apply YAML language to all wfm:/templates/* files - Needed so that icons can show up for templates
-    fileAssociations["/workflows/*"] = "yaml"; // apply YAML language to all wfm:/workflows/* files
-	
-	vscode.workspace.getConfiguration('files').update('associations', fileAssociations);
-
-	// --- WORKFLOW EXAMPLES - When we click the bottom cloud button the nsp-workflow repo
-	// is cloned to the workspace-
-	// Add workflow examples to workspace (Bottom Cloud Button)
+	/*
+	 *--- WORKFLOW EXAMPLES: When we click the bottom cloud button the nsp-workflow repo
+	 * is cloned to the workspace-
+	 * Add workflow examples to workspace (Bottom Cloud Button)
+	*/
 	const statusbar_examples = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 91);
 	statusbar_examples.command = 'nokia-wfm.examples';
 	statusbar_examples.tooltip = 'Add workflow examples to workspace';
@@ -162,6 +139,13 @@ export async function activate(context: vscode.ExtensionContext) {
 	if (!(workspaceFolders.find( ({name}) => name === 'nsp-workflow'))) {
 		statusbar_examples.show();
 	}
+
+	// Apply YAML language to all wfm:/actions/* and wfm:/workflows/* files
+	let fileAssociations : {string: string} = vscode.workspace.getConfiguration('files').get('associations') || <{string: string}>{};
+	fileAssociations["/actions/*"] = "yaml"; // apply YAML language to all wfm:/actions/* files
+	fileAssociations["/templates/*"] = "jinja"; // apply YAML language to all wfm:/templates/* files - Needed so that icons can show up for templates
+	fileAssociations["/workflows/*"] = "yaml"; // apply YAML language to all wfm:/workflows/* files
+	vscode.workspace.getConfiguration('files').update('associations', fileAssociations);
 
 	// Add Workflow Manager folder to workspace
 	vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: vscode.Uri.parse('wfm:/'), name: "Workflow Manager" });

@@ -47,19 +47,22 @@ export class FileStat implements vscode.FileStat { // FileStat is a class that c
 */
 export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscode.FileDecorationProvider {
 	static scheme = 'wfm';
-	// workflow manager attributes
+
 	nspAddr: string;
 	username: string;
 	password: string;
+	port: string;
 	authToken: any|undefined;
+
 	localsave: boolean;
 	localpath: string;
-	port: string;
 	timeout: number;
 	fileIgnore: Array<string>;
+
+	nspVersion: number[] | undefined; // NSP version
 	secretStorage: vscode.SecretStorage;
 	extContext: vscode.ExtensionContext;
-	nspVersion: number[] | undefined; // NSP version
+	
 	actions: {[name: string]: FileStat}; // DS for actions
 	templates: {[name: string]: FileStat}; // DS for templates
 	workflows: {[name: string]: FileStat}; // DS for workflows
@@ -2284,19 +2287,18 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 * @param {vscode.SecretStorage} secretStorage The secret storage storing cached credentials
 	*/
 	async setServer(server: string, config: vscode.WorkspaceConfiguration, statusbar_server: vscode.StatusBarItem, secretStorage: vscode.SecretStorage): Promise<void> {
-		console.log("Executing _getNSPCredentials()");
-		// whys servers here not get updated after add and this is called again?: 
-		let servers : Array<string> = config.get("servers");
+		
+		console.log("Executing setServer()");
+		let servers : Array<string> = config.get("servers") ?? [];
 		const quickPick = vscode.window.createQuickPick();
 		quickPick.placeholder = 'Select NSP Server...';
-		console.log('servers: ', servers);
-		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
+		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-connect')}));
 		quickPick.show();
 		quickPick.placeholder = 'Select NSP Server...';
 		quickPick.buttons = [{ iconPath: new vscode.ThemeIcon('add'), tooltip: 'Add Server'}, { iconPath: new vscode.ThemeIcon('remove'), tooltip: 'Remove Server'}];
+		
 		await quickPick.onDidTriggerButton(async button => { // add a server
 			if ((button.iconPath as vscode.ThemeIcon).id === 'add') {
-				console.log('Add Server Button Triggered');
 				await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' }).then((value) => {
 					if (value) { // if the user enters a value
 						if (!servers.includes(value)) {
@@ -2310,7 +2312,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					}
 				});
 			} else if ((button.iconPath as vscode.ThemeIcon).id === 'remove') { // remove a server
-				console.log('Remove Server Button Triggered');
 				const removeQuickPick = vscode.window.createQuickPick();
 				removeQuickPick.placeholder = 'Select Server to Remove...';
 				removeQuickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
@@ -2320,7 +2321,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						const index = servers.indexOf(selection[0].label);
 						await vscode.window.showWarningMessage('Are you sure you want to remove ' + selection[0].label + '?', 'Yes', 'No').then(async (value) => {
 							if (value === 'Yes') {
-								servers.splice(index, 1);
+								servers.splice(index, 1); // remove the server
 								await config.update('servers', servers, vscode.ConfigurationTarget.Global);
 								vscode.window.showWarningMessage('Server: ' + selection[0].label + ' removed');
 								return;
@@ -2334,11 +2335,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		quickPick.onDidChangeSelection(async selection => { // when a server is selected
 			if (selection[0]) {
 				statusbar_server.text = 'NSP: ' + selection[0].label;
-				let new_servers = [];
-				new_servers.push(selection[0].label);
-				servers.filter(server => server !== selection[0].label).forEach(server => new_servers.push(server)); // move selected server to the top of the list
-				console.log("new_servers: ", new_servers);
-				await config.update('servers', new_servers, vscode.ConfigurationTarget.Global);
 				quickPick.hide();
 				quickPick.dispose();
 			}
@@ -2833,7 +2829,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 	// --- manage file events
 	private _emitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
-
 	readonly onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this._emitter.event; // event emitter for file changes
 
 	watch(_resource: vscode.Uri): vscode.Disposable { // watch for file changes
