@@ -161,3 +161,5 @@ ______
     <img src="media/removeServer.png" width="550" title="hover text">
 </p>
 
+____
+* The the list of servers are stored in the users VsCode extension settings, so it consistent throughout multiple windows/sessions application wide.

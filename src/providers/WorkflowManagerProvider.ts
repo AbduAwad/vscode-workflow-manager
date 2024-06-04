@@ -2359,7 +2359,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					secretStorage.store(selection[0].label + '_password', passwordInput);
 				};
 			}
-			await config.update('activeServer', server, vscode.ConfigurationTarget.Global);
+			console.log('newServer: ', selection[0].label);
+			await config.update('activeServer', selection[0].label, vscode.ConfigurationTarget.Global);
 			vscode.commands.executeCommand('workbench.action.reloadWindow'); // reactivate the extension
 		});	
 	}

@@ -18,7 +18,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager');
-	const server : string   = config.get("activeServer")   ?? ""; // active server is the first server in the NSP server list.
+	const server : string   = config.get("activeServer")   ?? "localhost"; // active server is the first server in the NSP server list.
+	console.log('active server: ', server);
 	const username : string = config.get("username") ?? "admin";
 	const port : string = config.get("port") ?? "";
 	const timeout : number = config.get("timeout") ?? 20000;
@@ -76,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
 	statusbar_server.command = 'nokia-wfm.setServer';
 	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
-	statusbar_server.text = 'NSP: ' + server;
+	statusbar_server.text = 'NSP: ' + server ?? 'Select Server';
 	statusbar_server.show();
 
 	// --- Set Workflow Manager NSP Server when the user clicks the server button
