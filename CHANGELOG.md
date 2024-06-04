@@ -107,19 +107,22 @@ ____
 ## [2.0.1]
 ### Updates: Multiple Server Support
 * Set Server Support Added
-    * Users can click on the status bar Item that displays the current NSP server the extension is connected to.
+*
+    1. Users can click on the status bar Item that displays the current NSP server the extension is connected to.
 
-    $$\\[0.3in]$$
+_____
 
-    <p align="center">
-        <img src="media/statusbar.png" width="450" title="hover text">
-    </p>
-  
-    $$\\[0.3in]$$
-    
-    * Once the above status bar is clicked the a drop-down menu will appear allowing the user to select an NSP server for the extension to connect to.
 
-$$\\[0.3in]$$
+
+<p align="center">
+    <img src="media/statusbar.png" width="450" title="hover text">
+</p>
+
+______
+* 
+    2. Once the above status bar is clicked the a drop-down menu will appear allowing the user to select an NSP server for the extension to connect to.
+
+______
 
 <p align="center">
     <img src="media/servers.png" width="450" title="hover text">
@@ -140,12 +143,11 @@ ____
 * Adding NSP servers:
     * Users can add NSP's by clicking on the '+' button on the top right of the quickview. This will open in input box where you can enter the IP address of the NSP server you would like to add.
 
-$$\\[0.3in]$$
+______
 
 <p align="center">
     <img src="media/addServer.png" width="550" title="hover text">
 </p>
-
 
 
 _____
@@ -153,8 +155,10 @@ _____
 * Removing NSP servers:
     * Users can remove NSP's by clicking on the '-' button on the top right of the quickview. This will remove the selected NSP server from the list of servers.
 
-$$\\[0.3in]$$
+______
 
 <p align="center">
     <img src="media/removeServer.png" width="550" title="hover text">
 </p>
+
+______
