@@ -73,6 +73,19 @@
                             "type": "boolean",
                             "examples": [true, false]
                         },
+                        "urls": {
+                            "title": "URLs",
+                            "markdownDescription": "URLs associated with the workflow.",
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "title": "URL type",
+                                    "markdownDescription": "URL type.",
+                                    "type": "string",
+                                    "examples": ["git"]
+                                }
+                            }
+                        },
                         "dependencies":{
                             "title": "Workflow platform or nodal dependencies",
                             "markdownDescription": "Dependencies to particular nodal releases of NSP/NFM-P releases",

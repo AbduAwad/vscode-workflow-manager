@@ -1963,8 +1963,10 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				}
 				entry["description"] = ym.short_description.replace("\n", " ").trim(); // parse for the workflow description
 				entry["properties"] = ym.input; // parse for the workflow properties
-				
+				console.log('properties: ', ym.input);
+
 				Object.keys(entry.properties).forEach(function (arg){ // loop through each property
+					console.log('arg: ', arg);
 					if (Object.keys(entry.properties[arg]).indexOf("description") !== -1) { // if the argument has a description
 						var auxi = entry.properties[arg]["description"].split("\n")[0]; // get the first line of the description
 						entry.properties[arg]["description"] = auxi; // set the description to the first line
@@ -1988,6 +1990,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						property_name = property_name.split('=')[0]; // get the property name
 						let default_value = property_name.split('=')[1]; // get the default value
 					}
+					// if we have nsp.https as the action name: The body property type is anything 
+					
 					if (/^[a-zA-Z].*$/.test(property_name)===true){  // if the property name starts with a letter
 						props[property_name] = {}; // set the property name to an empty object
 					}
@@ -1999,21 +2003,21 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				entries.actions.push(entry); // add the entry to the list of entries
 				actionlist.push(entry.name); // add the action to the list of actions
 			}
-			console.log('entry: ', entry);
+			if (entry.name === "nsp.https") { // if the action is nsp.https allow the body type to be any type
+				entry.properties["body"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
+				console.log('entry.properties["body"]: ', entry.properties["body"]);
+			}
 		});
-
-		console.log('entries: ', JSON.stringify(entries ,null,'\t'));
 
 		var res = ny.render(templatePath, entries); // render the template with the entries
 		let fs = require("fs");
-
 		fs.writeFile(outpath, res, (err) => { 
-		if(err) { 
-			console.log(err); 
-		}
+			if(err) { 
+				console.log(err); 
+			}
 		});
 
-		fs.writeFile(snippetsfile, JSON.stringify(snippets,null,'\t'), (err) => { 
+		fs.writeFzile(snippetsfile, JSON.stringify(snippets,null,'\t'), (err) => { 
 			if(err) { 
 				console.log(err); 
 			}
