@@ -1999,13 +1999,25 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				entry["properties"] = props; // set the properties to the properties object
 			}
 			console.log('entry.name: ', entry.name);
+			console.log('entry.properties: ', entry.properties);
+			if (entry.name === "nsp.https") { // if the action is nsp.https allow the body type to be any type:
+				entry.properties["body"]["type"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
+				console.log('entry.properties["body"]: ', entry.properties["body"]);
+			}
+			if (entry.name === "std.echo") { // if the action is std.echo allow the output type to be any type:
+				entry.properties["output"]["type"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
+			}
+			if (entry.name === "nsp.assert"){ // if the action is nsp.assert allow the expected type to be any type:
+				entry.properties["expected"]["type"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
+			}
+			if (entry.name === "std.http") {
+				entry.properties["verify"]['type'] = {"type": ["boolean", "null"]};
+				entry.properties['headers']['type'] = {"type": ["object", "null"]};
+				entry.properties['body'] = {"type": ["string", "object", "null"]}; // add a propert body for this action
+			}
 			if (actionlist.indexOf(entry.name)===-1) { // if the action is not already in the list
 				entries.actions.push(entry); // add the entry to the list of entries
 				actionlist.push(entry.name); // add the action to the list of actions
-			}
-			if (entry.name === "nsp.https") { // if the action is nsp.https allow the body type to be any type
-				entry.properties["body"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
-				console.log('entry.properties["body"]: ', entry.properties["body"]);
 			}
 		});
 
