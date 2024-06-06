@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
 */
 
+import { privateEncrypt } from 'crypto';
 import * as vscode from 'vscode';
 
 const DECORATION_SIGNED: vscode.FileDecoration =    new vscode.FileDecoration(
@@ -133,6 +134,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
         }
 
 		this.password = await this.secretStorage.get(this.nspAddr + '_password');
+
         if (!this.authToken) {
             this.authToken = new Promise((resolve, reject) => {
 
@@ -1940,64 +1942,69 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			throw vscode.FileSystemError.Unavailable("Lost connection to NSP");
 		}
 
-		data = await wfm_response.json();		
+		data = await wfm_response.json();	
+		console.log('actions: ', data.response.data);	
 		let actions = data.response.data;
 		let entries: any = {};
 		
 		entries["actions"] = [];
 		const YAML = require('yaml');
 		const ny = require('nunjucks');
-		let actionlist = [];
+		let actionlist = []; // used to store a list of actions
 		actions.forEach(function(action) {
-		let entry: any = {};
-
-		try {
-			let ym = YAML.parse(action.description);
-			entry["name"]=ym.action;
-			if (Object.keys(ym).includes("examples")){
-				const ex1 = Object.keys(ym.examples)[0];
-				snippets[ym.action]={"scope":"yaml","prefix":ym.action,"description":ex1,"body":[ym.examples[ex1]]};
+			let entry: any = {};
+			try {
+				let ym = YAML.parse(action.description);
+				entry["name"]=action.name;
+				console.log('action.name: ', action.name);
+				if (Object.keys(ym).includes("examples")){ // if the action has examples
+					const ex1 = Object.keys(ym.examples)[0];
+					snippets[ym.action]={"scope":"yaml","prefix":ym.action,"description":ex1,"body":[ym.examples[ex1]]};
+				}
+				entry["description"] = ym.short_description.replace("\n", " ").trim(); // parse for the workflow description
+				entry["properties"] = ym.input; // parse for the workflow properties
+				
+				Object.keys(entry.properties).forEach(function (arg){ // loop through each property
+					if (Object.keys(entry.properties[arg]).indexOf("description") !== -1) { // if the argument has a description
+						var auxi = entry.properties[arg]["description"].split("\n")[0]; // get the first line of the description
+						entry.properties[arg]["description"] = auxi; // set the description to the first line
+					}
+				});
+			} catch { // If the action does not have a description field
+				entry["name"]=action.name; // set the name to the action name
+				if(Object.keys(action).indexOf("description") === -1 || !(action["description"])){ // if the action does not have a description
+					entry["description"] = ""; // set the description to an empty string
+				} else if (Object.keys(action.description).indexOf("\n") === -1){ // if the action description does not have a newline
+					var auxi = action.description.split("short_description: ")[1]; // get the short description
+					if (auxi){ // if the short description exists
+						entry["description"] = auxi.split("\n")[0]; // set the description to the short description
+					} else {
+						entry["description"] = "No description provided"; // set the description to no description provided
+					}
+				}
+				let props:JSON = {} as JSON; // create a JSON object for the properties
+				action["input"].split(', ').forEach( function(property_name) { // loop through each property
+					if (property_name.indexOf("=") !== -1){ // if the property has a default value
+						property_name = property_name.split('=')[0]; // get the property name
+						let default_value = property_name.split('=')[1]; // get the default value
+					}
+					if (/^[a-zA-Z].*$/.test(property_name)===true){  // if the property name starts with a letter
+						props[property_name] = {}; // set the property name to an empty object
+					}
+				}); 
+				entry["properties"] = props; // set the properties to the properties object
 			}
-			entry["description"] = ym.short_description.replace("\n", " ").trim();
-				entry["properties"] = ym.input;
-			
-				Object.keys(entry.properties).forEach(function (arg){
-				if (Object.keys(entry.properties[arg]).indexOf("description") !== -1){
-					var auxi = entry.properties[arg]["description"].split("\n")[0];
-					entry.properties[arg]["description"] = auxi;
-				}
-			});
-		} catch {
-			entry["name"]=action.name;
-			if(Object.keys(action).indexOf("description") === -1 || !(action["description"])){
-				entry["description"] = "";
-			} else if (Object.keys(action.description).indexOf("\n") === -1){
-				var auxi = action.description.split("short_description: ")[1];
-				if (auxi){
-					entry["description"] = auxi.split("\n")[0];
-				} else {
-					entry["description"] = "No description provided";
-				}
+			console.log('entry.name: ', entry.name);
+			if (actionlist.indexOf(entry.name)===-1) { // if the action is not already in the list
+				entries.actions.push(entry); // add the entry to the list of entries
+				actionlist.push(entry.name); // add the action to the list of actions
 			}
-			let props:JSON = {} as JSON;
-			action["input"].split(', ').forEach( function(property_name){
-				if (property_name.indexOf("=") !== -1){
-					property_name = property_name.split('=')[0];
-					let default_value = property_name.split('=')[1];
-				}
-				if (/^[a-zA-Z].*$/.test(property_name)===true){
-					props[property_name] = {};
-				}
-			});
-			entry["properties"] = props;
-		}
-		if (actionlist.indexOf(entry.name)===-1) {
-			entries.actions.push(entry);
-			actionlist.push(entry.name);
-		}
+			console.log('entry: ', entry);
 		});
 
-		var res = ny.render(templatePath, entries);
+		console.log('entries: ', JSON.stringify(entries ,null,'\t'));
+
+		var res = ny.render(templatePath, entries); // render the template with the entries
 		let fs = require("fs");
 
 		fs.writeFile(outpath, res, (err) => { 
@@ -2012,23 +2019,23 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			}
 		});
 
-		const wfmSchema = outpath;
-		const workflowUri = "wfm:/workflows/*/*";
-		let schemas = vscode.workspace.getConfiguration('yaml').get('schemas');
-		if (schemas[wfmSchema]) {
-			if (Array.isArray(schemas[wfmSchema])) {
-				if (schemas[wfmSchema].indexOf(workflowUri) === -1) {
-					(schemas[wfmSchema] as Array<string>).push(workflowUri);
+		const wfmSchema = outpath; // get the path to the schema
+		const workflowUri = "wfm:/workflows/*/*"; // get the uri for the workflow
+		let schemas = vscode.workspace.getConfiguration('yaml').get('schemas'); // get the schemas from the workspace
+		if (schemas[wfmSchema]) { // if the schema is already in the schemas
+			if (Array.isArray(schemas[wfmSchema])) { // if the schema is an array
+				if (schemas[wfmSchema].indexOf(workflowUri) === -1) { // if the workflow uri is not in the schema
+					(schemas[wfmSchema] as Array<string>).push(workflowUri); // add the workflow uri to the schema
 				}
-			} else if (typeof schemas[wfmSchema] === 'string') {
-				if (schemas[wfmSchema] !== workflowUri) {
-					schemas[wfmSchema] = [schemas[wfmSchema], workflowUri];
+			} else if (typeof schemas[wfmSchema] === 'string') { // if the schema is a string
+				if (schemas[wfmSchema] !== workflowUri) { // if the schema is not the workflow uri
+					schemas[wfmSchema] = [schemas[wfmSchema], workflowUri]; // set the schema to an array with the schema and the workflow uri
 				}
 			}
 		} else {
-			schemas[wfmSchema] = workflowUri;
+			schemas[wfmSchema] = workflowUri; // set the schema to the workflow uri
 		}
-		vscode.workspace.getConfiguration('yaml').update('schemas', schemas);
+		vscode.workspace.getConfiguration('yaml').update('schemas', schemas); // update the schemas
 	}
 
 	/**

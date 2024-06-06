@@ -10,11 +10,11 @@ import * as vscode from 'vscode'; // import the vscode module (VS Code API)
 import * as os from 'os'; //  import operating system
 import * as fs from 'fs'; // import filesystem
 
-// WorkflowManagerProvider is a class that contains all workflow operations.
+// WorkflowManagerProvider is a class that contains all workflow operations and implements the filesystem
 import { WorkflowManagerProvider, CodelensProvider } from './providers'; 
 
-// This function is ran once the the extension is activated:
-export async function activate(context: vscode.ExtensionContext) {  
+
+export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager');
