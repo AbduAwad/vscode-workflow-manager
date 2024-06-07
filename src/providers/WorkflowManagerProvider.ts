@@ -1998,17 +1998,15 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				}); 
 				entry["properties"] = props; // set the properties to the properties object
 			}
-			console.log('entry.name: ', entry.name);
-			console.log('entry.properties: ', entry.properties);
 			if (entry.name === "nsp.https") { // if the action is nsp.https allow the body type to be any type:
-				entry.properties["body"]["type"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
+				entry.properties["body"]["type"] = {"type": ["string", "object", "array", "null"]};
 				console.log('entry.properties["body"]: ', entry.properties["body"]);
 			}
 			if (entry.name === "std.echo") { // if the action is std.echo allow the output type to be any type:
-				entry.properties["output"]["type"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
+				entry.properties["output"]["type"] = {"type": ["string", "object", "null"]};
 			}
 			if (entry.name === "nsp.assert"){ // if the action is nsp.assert allow the expected type to be any type:
-				entry.properties["expected"]["type"] = {"type": ["string", "number", "object", "array", "boolean", "null"]};
+				entry.properties["expected"]["type"] = {"type": ["boolean", "null"]};
 			}
 			if (entry.name === "std.http") {
 				entry.properties["verify"]['type'] = {"type": ["boolean", "null"]};
@@ -2029,12 +2027,13 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			}
 		});
 
-		fs.writeFzile(snippetsfile, JSON.stringify(snippets,null,'\t'), (err) => { 
+		fs.writeFile(snippetsfile, JSON.stringify(snippets,null,'\t'), (err) => { 
 			if(err) { 
 				console.log(err); 
 			}
 		});
 
+		console.log('schema generated');
 		const wfmSchema = outpath; // get the path to the schema
 		const workflowUri = "wfm:/workflows/*/*"; // get the uri for the workflow
 		let schemas = vscode.workspace.getConfiguration('yaml').get('schemas'); // get the schemas from the workspace
@@ -2510,6 +2509,11 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 */	
 	async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
 		console.log('executing stat('+uri+')');
+
+		if (uri.toString().endsWith('.')) {
+			throw vscode.FileSystemError.FileNotFound('No Permissions!');
+		}
+		
 		if ((uri.toString() ==='wfm:/') || (uri.toString()==='wfm:/workflows') || (uri.toString()==='wfm:/actions') || (uri.toString()==='wfm:/templates')) {
 			return {
 				type: vscode.FileType.Directory,
@@ -2521,17 +2525,17 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		}
 
 		let path_length = uri.toString().split('/').length;
-		if (uri.toString().startsWith('wfm:/workflows/') && path_length == 4 && !uri.toString().includes('.')) {
-			throw vscode.FileSystemError.FileNotFound('No Permission to add a folder within a workflow folder!');
-		} else if (uri.toString().startsWith('wfm:/workflows/') && uri.toString().split("/").pop().includes('.') && path_length == 3) {
-			throw vscode.FileSystemError.FileNotFound("No Permission to add a file within the 'workflows' directory!");
+		console.log('path_length: ', path_length);
+		if (uri.toString().startsWith('wfm:/workflows/') && path_length > 3 && !(uri.toString().endsWith('.yaml') || uri.toString().endsWith('.json') || uri.toString().endsWith('.md'))) {
+			throw vscode.FileSystemError.FileNotFound('No Permission to add a folder/file within a workflow folder!');
 		}
 		
-		else if (uri.toString().startsWith('wfm:/workflows/') && !uri.toString().includes('.')) {
+		else if (uri.toString().startsWith('wfm:/workflows/') && !(uri.toString().endsWith('.yaml') || uri.toString().endsWith('.json') || uri.toString().endsWith('.md'))) { // if the uri is a workflow folder
 			if (Object.keys(this.workflow_folders).length === 0) { // if the workflows are empty
 				await this.readDirectory(vscode.Uri.parse('wfm:/workflows'));
 			}
 			const key = uri.toString().split('/')[2];
+			console.log('key1: ', key);
 			if (key in this.workflow_folders) {
 				return this.workflow_folders[key];
 			}
@@ -2541,6 +2545,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				await this.readDirectory(vscode.Uri.parse('wfm:/workflows'));
 			}
 			const key = uri.toString().split('/')[3];
+			console.log('key2: ', key);
 			if (key in this.workflows) {
 				return this.workflows[key];
 			}
@@ -2562,7 +2567,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				await this.readDirectory(vscode.Uri.parse('wfm:/workflows'));
 			}
 			const key = uri.toString().split('/')[3];
-			console.log('key: ', key);
+			console.log('key4: ', key);
 			if (key in this.workflow_views) {
 				return this.workflow_views[key];
 			}
@@ -2684,13 +2689,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 */
 	async writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): Promise<void> {
 		console.log("executing writeFile("+uri+")");
-		
-		let path_length = uri.toString().split('/').length;
-		// if we try to write a file within the workflows directory and we are not in a workflow folder
-		if (uri.toString().startsWith('wfm:/workflows/') && uri.toString().split("/").pop().includes('.') && path_length == 3) {
-			throw vscode.FileSystemError.NoPermissions("No Permissions to add a file within the 'workflows' folder!");
-		}
-		
+
 		if (uri.toString().startsWith('wfm:/workflows/')) {
 			if (uri.toString().endsWith('.json')) { // if its a view
 				const key = uri.toString().substring(15).split('/').pop();
@@ -2731,9 +2730,9 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		if (oldUri.toString().startsWith('wfm:/workflows/') && newUri.toString().includes('.md')) {
 			throw vscode.FileSystemError.NoPermissions('No Permissions!');
 		}
-		if (oldUri.toString().startsWith('wfm:/workflows/') && newUri.toString().includes('.')) {
+		if (oldUri.toString().startsWith('wfm:/workflows/') && newUri.toString().endsWith('.json') || newUri.toString().endsWith('.yaml')) {
 			let uri_folder_name = oldUri.toString().split("/").pop().split(".")[0];
-			throw vscode.FileSystemError.NoPermissions('Must rename the '+uri_folder_name+' workflow folder!');
+			throw vscode.FileSystemError.NoPermissions('Must rename the workflow folder!');
 		}
 		if (oldUri.toString().startsWith('wfm:/workflows/') && newUri.toString().startsWith('wfm:/workflows/')) {
 			const oldName : string = oldUri.toString().substring(15);
@@ -2777,10 +2776,10 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			throw vscode.FileSystemError.NoPermissions('Permission denied!');
 		} else if (uri.toString() === "wfm/templates") {
 			throw vscode.FileSystemError.NoPermissions('Permission denied!');
-		} else if (uri.toString().startsWith("wfm:/workflows/") && !uri.toString().includes('.')) {
+		} else if (uri.toString().startsWith("wfm:/workflows/") && !(uri.toString().endsWith('.json') || uri.toString().endsWith('.yaml') || uri.toString().endsWith('.md'))) {
 			let key = uri.toString().substring(15);
 			await this._deleteWorkflow(key);
-		} else if (uri.toString().startsWith("wfm:/workflows/") && uri.toString().includes('.')) {
+		} else if (uri.toString().startsWith("wfm:/workflows/") && (uri.toString().endsWith('.json') || uri.toString().endsWith('.yaml') || uri.toString().endsWith('.md'))) {
 			let folder_name = uri.toString().split("/").pop().split(".")[0];
 			throw vscode.FileSystemError.NoPermissions('Permission denied! Must delete the '+folder_name+' workflow folder!');
 		} else if (uri.toString().startsWith("wfm:/actions/")) {
@@ -2800,7 +2799,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	*/	
 	createDirectory(uri: vscode.Uri): void {
 		console.log("executing createDirectory("+uri+")");
-		if (uri.toString().startsWith('wfm:/workflows/') && uri.toString().split('/').length < 4 && !uri.toString().includes('.')) {
+		if (uri.toString().startsWith('wfm:/workflows/') && uri.toString().split('/').length == 3 && !(uri.toString().endsWith('.json') || uri.toString().endsWith('.yaml') || uri.toString().endsWith('.md'))) {
 			this._writeWorkflow(uri.toString().substring(15) + '.yaml', '');
 		} else if (uri.toString().startsWith('wfm:/workflows/') && uri.toString().split('/').length >= 4 && !uri.toString().includes('.')) {
 			throw vscode.FileSystemError.NoPermissions('No Permissions to add a folder within a workflow folder!');
