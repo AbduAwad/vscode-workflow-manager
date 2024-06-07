@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: BSD-3-Clause
 */
 
-import { privateEncrypt } from 'crypto';
 import * as vscode from 'vscode';
 
 const DECORATION_SIGNED: vscode.FileDecoration =    new vscode.FileDecoration(
@@ -2726,7 +2725,9 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	*/	
 	async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
 		console.log("executing rename("+oldUri+", "+newUri+")");
-		
+		if (oldUri.toString().endsWith('.') || newUri.toString().endsWith('.')) {
+			throw vscode.FileSystemError.NoPermissions('No Permissions!');
+		}
 		if (oldUri.toString().startsWith('wfm:/workflows/') && newUri.toString().includes('.md')) {
 			throw vscode.FileSystemError.NoPermissions('No Permissions!');
 		}
@@ -2799,6 +2800,10 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	*/	
 	createDirectory(uri: vscode.Uri): void {
 		console.log("executing createDirectory("+uri+")");
+
+		if (uri.toString().endsWith('.')) {
+			throw vscode.FileSystemError.NoPermissions('No Permissions!');
+		}
 		if (uri.toString().startsWith('wfm:/workflows/') && uri.toString().split('/').length == 3 && !(uri.toString().endsWith('.json') || uri.toString().endsWith('.yaml') || uri.toString().endsWith('.md'))) {
 			this._writeWorkflow(uri.toString().substring(15) + '.yaml', '');
 		} else if (uri.toString().startsWith('wfm:/workflows/') && uri.toString().split('/').length >= 4 && !uri.toString().includes('.')) {
