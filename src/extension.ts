@@ -19,7 +19,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager');
 	const server : string   = config.get("activeServer")   ?? "localhost"; // active server is the first server in the NSP server list.
-	console.log('active server: ', server);
 	const username : string = config.get("username") ?? "admin";
 	const port : string = config.get("port") ?? "";
 	const timeout : number = config.get("timeout") ?? 20000;
@@ -27,7 +26,14 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const localpath : string = config.get("localStorage.folder") ?? "";
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
-	
+
+	// let servers: Array<string> = config.get("servers") ?? [];
+	// // delete the secret storage for the password if the server is not in the list
+	// servers.forEach((server) => {
+	// 	secretStorage.delete(server + '_username');
+	// 	secretStorage.delete(server + '_password');
+	// });
+
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
 	context.subscriptions.push(vscode.window.registerFileDecorationProvider(wfmProvider));
 	wfmProvider.extContext=context;
@@ -86,6 +92,13 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		wfmProvider.setServer(server, updatedConfig, statusbar_server, secretStorage); // set Active Workflow Manager NSP Server
 	}));
 
+	// --- subscription for changes in the configuration
+	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (e) => {
+		if (e.affectsConfiguration('workflowManager')) {
+			wfmProvider.updateSettings();
+		}
+	}));
+
 	// // Generate schema for validation
 	wfmProvider.generateSchema();
 
@@ -126,7 +139,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		};
 	});
 	
-	// checks if
+	// checks if 
 	vscode.workspace.onDidChangeWorkspaceFolders(async () => {
 		const workspaceFolders =  vscode.workspace.workspaceFolders ?  vscode.workspace.workspaceFolders : [];
 		if (workspaceFolders.find( ({name}) => name === 'nsp-workflow')) {

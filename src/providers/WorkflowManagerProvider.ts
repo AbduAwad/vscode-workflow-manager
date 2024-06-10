@@ -157,35 +157,19 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
                     signal: timeout.signal
                 }).then(response => {
                     console.log("POST", url, response.status);
-					if (response.status === 401) { // Unauthorized: Invalid username or password
-						vscode.window.showErrorMessage("WFM: Incorrect NSP username or password.");
-						reject("Authentication Error: Incorrect username or password");
-						this.secretStorage.delete(this.nspAddr + '_username'); // deletes enteries from Cached VsCode Secret Storage
-						this.secretStorage.delete(this.nspAddr + '_password'); // deletes enteries from Cached VsCode Secret Storage
-						vscode.commands.executeCommand('nokia-wfm.setServer'); // have the user re-pick an NSP and re-enter credentials
-						return undefined; // Explicitly return undefined
-                    } else if (!response.ok) {
+					if (!response.ok) {
 						vscode.window.showErrorMessage("WFM: NSP Auth Error");
                         reject("Authentication Error!");
                         throw new Error("Authentication Error!");
                     }
                     return response.json();
                 }).then(json => {
-                    resolve(json.access_token);
+                    resolve(json.access_token); // resolve promise with auth-token
                     setTimeout(() => this._revokeAuthToken(), 600000); // automatically revoke token after 10min
-                }).catch(error => {
+					return;
+				}).catch(error => {
                     console.error(error.message);
-					if (error.name === 'AbortError') {
-						vscode.window.showWarningMessage("WFM: Request to NSP timed out");
-					} else if (error.code === 'ECONNREFUSED') { // this means that no NSP exists at the given endpoint
-						vscode.window.showErrorMessage("WFM: Unable to connect to NSP server at endpoint. Connection refused");
-						this.secretStorage.delete(this.nspAddr + '_username'); // deletes enteries from Cached VsCode Secret Storage
-						this.secretStorage.delete(this.nspAddr + '_password'); // deletes enteries from Cached VsCode Secret Storage
-						vscode.commands.executeCommand('nokia-wfm.setServer'); // have the user re-pick an NSP and re-enter credentials
-						return undefined; // Explicitly return undefined
-					} else {
-						vscode.window.showErrorMessage("WFM: NSP is not reachable");
-					}
+					vscode.window.showErrorMessage("WFM: NSP is not reachable");
                     resolve(undefined);
                 });
             });
@@ -293,6 +277,42 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Method to validate NSP credentials
+	 * @param {string} ip - IP address of the NSP
+	 * @param {string} username - NSP username
+	 * @param {string} password - NSP password
+	*/
+	private async validateNSPCredentials(ip: string, username: string, password: string): Promise<boolean> {
+
+		console.log("Executing validateIpCredentials()");
+		const fetch = require('node-fetch');
+		const base64 = require('base-64');
+		const timeout = new AbortController();
+		setTimeout(() => timeout.abort(), this.timeout);
+
+		const url = "https://"+ip+"/rest-gateway/rest/api/v1/auth/token";
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Cache-Control': 'no-cache',
+					'Authorization': 'Basic ' + base64.encode(username+ ":" +password)
+				},
+				body: '{"grant_type": "client_credentials"}',
+				signal: timeout.signal
+			});
+			console.log("POST", url, response.status);
+			if (!response.ok) {
+				return false;
+			}
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	/**
@@ -1955,17 +1975,14 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			try {
 				let ym = YAML.parse(action.description);
 				entry["name"]=action.name;
-				console.log('action.name: ', action.name);
 				if (Object.keys(ym).includes("examples")){ // if the action has examples
 					const ex1 = Object.keys(ym.examples)[0];
 					snippets[ym.action]={"scope":"yaml","prefix":ym.action,"description":ex1,"body":[ym.examples[ex1]]};
 				}
 				entry["description"] = ym.short_description.replace("\n", " ").trim(); // parse for the workflow description
 				entry["properties"] = ym.input; // parse for the workflow properties
-				console.log('properties: ', ym.input);
 
 				Object.keys(entry.properties).forEach(function (arg){ // loop through each property
-					console.log('arg: ', arg);
 					if (Object.keys(entry.properties[arg]).indexOf("description") !== -1) { // if the argument has a description
 						var auxi = entry.properties[arg]["description"].split("\n")[0]; // get the first line of the description
 						entry.properties[arg]["description"] = auxi; // set the description to the first line
@@ -2314,10 +2331,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		const quickPick = vscode.window.createQuickPick();
 		quickPick.placeholder = 'Select NSP Server...';
 		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-connect')}));
-		quickPick.show();
-		quickPick.placeholder = 'Select NSP Server...';
 		quickPick.buttons = [{ iconPath: new vscode.ThemeIcon('add'), tooltip: 'Add Server'}, { iconPath: new vscode.ThemeIcon('remove'), tooltip: 'Remove Server'}];
-		
+		quickPick.show();
 		await quickPick.onDidTriggerButton(async button => { // add a server
 			if ((button.iconPath as vscode.ThemeIcon).id === 'add') {
 				await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' }).then((value) => {
@@ -2354,41 +2369,80 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		});
 
 		quickPick.onDidChangeSelection(async selection => { // when a server is selected
-			if (selection[0]) {
-				statusbar_server.text = 'NSP: ' + selection[0].label;
-				quickPick.hide();
-				quickPick.dispose();
-			}
 			if (await secretStorage.get(selection[0].label + '_username') != undefined && await secretStorage.get(selection[0].label + '_password') != undefined) {
-				console.log("Username/Password are cached");
-				console.log('Username: ', await secretStorage.get(selection[0].label + '_username'));
 				await config.update('username', await secretStorage.get(selection[0].label + '_username'), vscode.ConfigurationTarget.Global);
+				await config.update('activeServer', selection[0].label, vscode.ConfigurationTarget.Global);
+				vscode.window.showInformationMessage('Connecting to NSP: ' + selection[0].label);
+				this.updateSettings();
+				if (selection[0]) {
+					statusbar_server.text = 'NSP: ' + selection[0].label;
+					quickPick.hide();
+					quickPick.dispose();
+				}
 			} else { // If the username and password are not cached, prompt the user for the username and password
 				const usernameInput: string = await vscode.window.showInputBox({
 					prompt: 'Enter Username...',
 				}) ?? '';
-				if(usernameInput !== '') {
-					secretStorage.store(selection[0].label + '_username', usernameInput);
-					await config.update('username', usernameInput, vscode.ConfigurationTarget.Global);
-				};
-				
+
 				const passwordInput: string = await vscode.window.showInputBox({
 					password: true, 
 					prompt: 'Enter Password...'
 				}) ?? '';
-				if(passwordInput !== '') {
+
+				console.log(await this.validateNSPCredentials(selection[0].label, usernameInput, passwordInput));
+				if (await this.validateNSPCredentials(selection[0].label, usernameInput, passwordInput)) {
+					secretStorage.store(selection[0].label + '_username', usernameInput);
 					secretStorage.store(selection[0].label + '_password', passwordInput);
-				};
+					await config.update('username', usernameInput, vscode.ConfigurationTarget.Global);
+					await config.update('activeServer', selection[0].label, vscode.ConfigurationTarget.Global);
+					if (selection[0]) {
+						statusbar_server.text = 'NSP: ' + selection[0].label;
+						quickPick.hide();
+						quickPick.dispose();
+					}
+					vscode.window.showInformationMessage('Connecting to NSP: ' + selection[0].label);
+					await this.updateSettings();
+				} else {
+					vscode.window.showErrorMessage('Invalid Credentials');
+				}
 			}
-			console.log('newServer: ', selection[0].label);
-			await config.update('activeServer', selection[0].label, vscode.ConfigurationTarget.Global);
-			vscode.commands.executeCommand('workbench.action.reloadWindow'); // reactivate the extension
-		});	
+		});
 	}
 
+	public updateSettings() {
+
+		console.log("Executing updateSettings()");
+
+		const config = vscode.workspace.getConfiguration('workflowManager');
+		this.timeout = config.get('timeout') ?? 90000; // default 3min
+		this.fileIgnore = config.get('ignoreTags') ?? [];
+		this.localsave = config.get("localStorage.enable") ?? false;
+		this.localpath = config.get("localStorage.folder") ?? "";
+
+		const nsp:string = config.get('activeServer') ?? 'localhost';
+		const user:string = config.get('username') ?? 'admin';
+		const port:string = config.get('port') ?? '443';
+
+		if (nsp !== this.nspAddr || user !== this.username || port !== this.port) {
+			vscode.window.showWarningMessage('Disconnecting from NSP: ' + this.nspAddr);
+			this._revokeAuthToken();
+			this.nspAddr = nsp;
+			this.username = user;
+			this.port = port;
+			this.nspVersion = undefined;
+		}
+		// clear the cache:
+		this.workflow_folders = {};
+		this.workflows = {};
+		this.workflow_documentations = {};
+		this.workflow_views = {};
+		this.actions = {};
+		this.templates = {};
+		vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer');
+	}
 	
 	// vscode.FileSystemProvider implementation ----------------
-
+	
 	/**
 	 * vsCode.FileSystemProvider method to read directory entries.
 	 * WorkflowManagerProvider uses this as main method to pull data from WFM
