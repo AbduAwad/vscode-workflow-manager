@@ -33,13 +33,14 @@
           "readOnly": true
         },
         "workflowManager.servers": {
+          "title": "Servers",
+          "markdownDescription": "List of NSP servers",
           "type": "array",
+          "scope": "application",
           "items":
           {
             "type": "string"
-          },
-          "scope": "application",
-          "description": "Active NSP server address"
+          }
         },
         "workflowManager.username": {
           "type": "string",
