@@ -166,7 +166,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
                 }).then(json => {
                     resolve(json.access_token); // resolve promise with auth-token
                     setTimeout(() => this._revokeAuthToken(), 600000); // automatically revoke token after 10min
-					return;
 				}).catch(error => {
                     console.error(error.message);
 					vscode.window.showErrorMessage("WFM: NSP is not reachable");
