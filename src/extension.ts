@@ -34,6 +34,9 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	// 	secretStorage.delete(server + '_password');
 	// });
 
+	let servers = config.get("NSPS");
+	console.log('servers: ', servers);
+
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
 	context.subscriptions.push(vscode.window.registerFileDecorationProvider(wfmProvider));
 	wfmProvider.extContext=context;
@@ -89,7 +92,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	// --- Set Workflow Manager NSP Server when the user clicks the server button
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
 		let updatedConfig = vscode.workspace.getConfiguration('workflowManager');
-		wfmProvider.setServer(server, updatedConfig, statusbar_server, secretStorage); // set Active Workflow Manager NSP Server
+		wfmProvider.setServer(updatedConfig, statusbar_server, secretStorage); // set Active Workflow Manager NSP Server
 	}));
 
 	// --- subscription for changes in the configuration

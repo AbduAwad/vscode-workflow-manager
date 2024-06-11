@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
 */
 
+import { privateEncrypt } from 'crypto';
 import * as vscode from 'vscode';
 
 const DECORATION_SIGNED: vscode.FileDecoration =    new vscode.FileDecoration(
@@ -53,16 +54,13 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	password: string;
 	port: string;
 	authToken: any|undefined;
-
 	localsave: boolean;
 	localpath: string;
 	timeout: number;
 	fileIgnore: Array<string>;
-
 	nspVersion: number[] | undefined; // NSP version
 	secretStorage: vscode.SecretStorage;
 	extContext: vscode.ExtensionContext;
-	
 	actions: {[name: string]: FileStat}; // DS for actions
 	templates: {[name: string]: FileStat}; // DS for templates
 	workflows: {[name: string]: FileStat}; // DS for workflows
@@ -2323,10 +2321,19 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 * @param {vscode.StatusBarItem} statusbar_server The status bar item
 	 * @param {vscode.SecretStorage} secretStorage The secret storage storing cached credentials
 	*/
-	async setServer(server: string, config: vscode.WorkspaceConfiguration, statusbar_server: vscode.StatusBarItem, secretStorage: vscode.SecretStorage): Promise<void> {
+	async setServer(config: vscode.WorkspaceConfiguration, statusbar_server: vscode.StatusBarItem, secretStorage: vscode.SecretStorage): Promise<void> {
 		
+		console.log('config: ', config);
 		console.log("Executing setServer()");
-		let servers : Array<string> = config.get("servers") ?? [];
+		let test_servers : Array<{id: string, ip: string}> = config.get("NSPS") ?? [];
+		// test servers is a list of server objects with keys id and ip I want to append that to a server list of strings:
+		let servers = []
+		test_servers.forEach(function (server) {
+			servers.push(server.id + " | " + server.ip);
+		});
+		console.log(servers);
+
+		// let servers : Array<string> = config.get("servers") ?? [];
 		const quickPick = vscode.window.createQuickPick();
 		quickPick.placeholder = 'Select NSP Server...';
 		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-connect')}));
@@ -2334,18 +2341,21 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		quickPick.show();
 		await quickPick.onDidTriggerButton(async button => { // add a server
 			if ((button.iconPath as vscode.ThemeIcon).id === 'add') {
-				await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' }).then((value) => {
-					if (value) { // if the user enters a value
-						if (!servers.includes(value)) {
-							servers.push(value);
-							config.update('servers', servers, vscode.ConfigurationTarget.Global); // update the servers list
-							vscode.window.showInformationMessage('Server: ' + value + ' added');
-							return;
-						} else {
-							vscode.window.showInformationMessage('Server already exists');
-						}
-					}
-				});
+				const id = await vscode.window.showInputBox({ prompt: 'Enter an identifier for your NSP' });
+				const ip = await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' });
+				
+				let server = {id: '', ip: ''};
+				server['id'] = id;
+				server['ip'] = ip;
+
+				// check if test_servers already has this id: 
+				if (test_servers.some(e => e.id === id)) {
+					vscode.window.showInformationMessage('Server with id: ' + id + ' already exists');
+				} else {
+					test_servers.push(server);
+					config.update('NSPS', test_servers, vscode.ConfigurationTarget.Global);
+					vscode.window.showInformationMessage('Server: ' + id + ' added');
+				}
 			} else if ((button.iconPath as vscode.ThemeIcon).id === 'remove') { // remove a server
 				const removeQuickPick = vscode.window.createQuickPick();
 				removeQuickPick.placeholder = 'Select Server to Remove...';
@@ -2353,12 +2363,20 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				removeQuickPick.show();
 				await removeQuickPick.onDidChangeSelection(async selection => {
 					if (selection[0]) {
-						const index = servers.indexOf(selection[0].label);
+						let ip = selection[0].label;
+						const ipRegex = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
+						const match = ip.match(ipRegex);
+						if (match) {
+							ip =  match[0];
+						} else {
+							throw new Error("No IP address found in the input string");
+						}
+						const index = servers.indexOf(ip);
 						await vscode.window.showWarningMessage('Are you sure you want to remove ' + selection[0].label + '?', 'Yes', 'No').then(async (value) => {
 							if (value === 'Yes') {
 								servers.splice(index, 1); // remove the server
 								await config.update('servers', servers, vscode.ConfigurationTarget.Global);
-								vscode.window.showWarningMessage('Server: ' + selection[0].label + ' removed');
+								vscode.window.showWarningMessage('Server: ' + ip + ' removed');
 								return;
 							}
 						});
@@ -2368,13 +2386,27 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		});
 
 		quickPick.onDidChangeSelection(async selection => { // when a server is selected
-			if (await secretStorage.get(selection[0].label + '_username') != undefined && await secretStorage.get(selection[0].label + '_password') != undefined) {
-				await config.update('username', await secretStorage.get(selection[0].label + '_username'), vscode.ConfigurationTarget.Global);
-				await config.update('activeServer', selection[0].label, vscode.ConfigurationTarget.Global);
-				vscode.window.showInformationMessage('Connecting to NSP: ' + selection[0].label);
+			
+			console.log('selection: ', selection);
+			let ip = selection[0].label;
+
+			const ipRegex = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
+			const match = ip.match(ipRegex);
+			
+			if (match) {
+				ip =  match[0];
+			} else {
+				throw new Error("No IP address found in the input string");
+			}
+
+			console.log('ip: ', ip)
+			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
+				await config.update('username', await secretStorage.get(ip + '_username'), vscode.ConfigurationTarget.Global);
+				await config.update('activeServer', ip, vscode.ConfigurationTarget.Global);
+				vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
 				this.updateSettings();
 				if (selection[0]) {
-					statusbar_server.text = 'NSP: ' + selection[0].label;
+					statusbar_server.text = 'NSP: ' + ip;
 					quickPick.hide();
 					quickPick.dispose();
 				}
@@ -2388,18 +2420,18 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					prompt: 'Enter Password...'
 				}) ?? '';
 
-				console.log(await this.validateNSPCredentials(selection[0].label, usernameInput, passwordInput));
-				if (await this.validateNSPCredentials(selection[0].label, usernameInput, passwordInput)) {
-					secretStorage.store(selection[0].label + '_username', usernameInput);
-					secretStorage.store(selection[0].label + '_password', passwordInput);
+				console.log(await this.validateNSPCredentials(ip, usernameInput, passwordInput));
+				if (await this.validateNSPCredentials(ip, usernameInput, passwordInput)) {
+					secretStorage.store(ip + '_username', usernameInput);
+					secretStorage.store(ip + '_password', passwordInput);
 					await config.update('username', usernameInput, vscode.ConfigurationTarget.Global);
-					await config.update('activeServer', selection[0].label, vscode.ConfigurationTarget.Global);
+					await config.update('activeServer', ip, vscode.ConfigurationTarget.Global);
 					if (selection[0]) {
-						statusbar_server.text = 'NSP: ' + selection[0].label;
+						statusbar_server.text = 'NSP: ' + ip;
 						quickPick.hide();
 						quickPick.dispose();
 					}
-					vscode.window.showInformationMessage('Connecting to NSP: ' + selection[0].label);
+					vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
 					await this.updateSettings();
 				} else {
 					vscode.window.showErrorMessage('Invalid Credentials');
@@ -2407,6 +2439,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			}
 		});
 	}
+
 
 	public updateSettings() {
 
