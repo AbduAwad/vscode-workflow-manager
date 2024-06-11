@@ -100,6 +100,19 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		if (e.affectsConfiguration('workflowManager')) {
 			wfmProvider.updateSettings();
 		}
+		if (e.affectsConfiguration('intentManager')) { // update workflow manager NSP list: 
+			const imConfig = vscode.workspace.getConfiguration('intentManager');
+			let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
+			if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
+				let servers = imConfig.get("NSPS") ?? {};
+				wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
+			}
+			if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
+				let server = imConfig.get("activeServer"); // update the active server:
+				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Global);
+			}
+			vscode.commands.executeCommand('workbench.action.reloadWindow');
+		}
 	}));
 
 	// // Generate schema for validation
