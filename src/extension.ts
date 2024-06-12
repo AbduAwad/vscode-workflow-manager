@@ -26,7 +26,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 
 	if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 		let server = imConfig.get("activeServer"); // update the active server:
-		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Global);
+		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
 	}
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
@@ -115,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 			}
 			if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 				let server = imConfig.get("activeServer"); // update the active server:
-				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Global);
+				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
 				statusbar_server.text = 'NSP: ' + server;
 			}
 			wfmProvider.updateSettings();
