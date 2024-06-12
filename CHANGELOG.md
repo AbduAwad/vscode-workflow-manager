@@ -170,3 +170,6 @@ ____
 
 - WFM extension and IM extension both connect to the same NSP.
 - username and password removed from settings as its entered through the quickviews and stored in secret storage.
+- Added a way for users to reset the credentials for an IP they are connected to when clicking the settings icon: 
+
+![alt text](media/image-1.png)

@@ -2347,7 +2347,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		const quickPick = vscode.window.createQuickPick();
 		quickPick.placeholder = 'Select NSP Server...';
 		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-connect')}));
-		quickPick.buttons = [{ iconPath: new vscode.ThemeIcon('add'), tooltip: 'Add Server'}, { iconPath: new vscode.ThemeIcon('remove'), tooltip: 'Remove Server'}];
+		quickPick.buttons = [ { iconPath: new vscode.ThemeIcon('gear'), tooltip: 'Reset Credentials for an NSP...'}, { iconPath: new vscode.ThemeIcon('add'), tooltip: 'Add Server'}, { iconPath: new vscode.ThemeIcon('remove'), tooltip: 'Remove Server'}];
 		quickPick.show();
 		await quickPick.onDidTriggerButton(async button => { // add a server
 			if ((button.iconPath as vscode.ThemeIcon).id === 'add') {
@@ -2396,6 +2396,34 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						});
 					}
 				});
+			} else if ((button.iconPath as vscode.ThemeIcon).id === 'gear') { // re-enter credentials for an NSP
+				const resetQuickPick = vscode.window.createQuickPick();
+				resetQuickPick.placeholder = 'Select a Server To Reset Its Credentials ... ';
+				resetQuickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-active')}));
+				resetQuickPick.show();
+				await resetQuickPick.onDidChangeSelection(async selection => {
+					if (selection[0]) {
+						let ip = selection[0].label;
+						const ipRegex = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
+						const match = ip.match(ipRegex);
+						if (match) {
+							ip =  match[0];
+						} else {
+							throw new Error("No IP address found in the input string");
+						}
+						const usernameInput: string = await vscode.window.showInputBox({ prompt: 'Enter Username...' }) ?? '';
+						const passwordInput: string = await vscode.window.showInputBox({ password: true,  prompt: 'Enter Password...' }) ?? '';
+						if (await this.validateNSPCredentials(ip, usernameInput, passwordInput)) {
+							await secretStorage.delete(ip + '_username');
+							await secretStorage.delete(ip + '_password');
+							await secretStorage.store(ip + '_username', usernameInput);
+							await secretStorage.store(ip + '_password', passwordInput);
+							vscode.window.showInformationMessage('Success! Credentials for ' + ip + ' updated');
+						} else {
+							vscode.window.showErrorMessage('Invalid Credentials');
+						}
+					}
+				});
 			}
 		});
 
@@ -2424,14 +2452,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					quickPick.dispose();
 				}
 			} else { // If the username and password are not cached, prompt the user for the username and password
-				const usernameInput: string = await vscode.window.showInputBox({
-					prompt: 'Enter Username...',
-				}) ?? '';
-
-				const passwordInput: string = await vscode.window.showInputBox({
-					password: true, 
-					prompt: 'Enter Password...'
-				}) ?? '';
+				const usernameInput: string = await vscode.window.showInputBox({ prompt: 'Enter Username...' }) ?? '';
+				const passwordInput: string = await vscode.window.showInputBox({ password: true,  prompt: 'Enter Password...' }) ?? '';
 
 				console.log(await this.validateNSPCredentials(ip, usernameInput, passwordInput));
 				if (await this.validateNSPCredentials(ip, usernameInput, passwordInput)) {

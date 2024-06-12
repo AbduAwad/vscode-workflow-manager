@@ -11,7 +11,7 @@ import * as os from 'os'; //  import operating system
 import * as fs from 'fs'; // import filesystem
 
 // WorkflowManagerProvider is a class that contains all workflow operations and implements the filesystem
-import { WorkflowManagerProvider, CodelensProvider } from './providers'; 
+import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
 
@@ -122,7 +122,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		}
 	}));
 
-	// // Generate schema for validation
+	// Generate schema for validation
 	wfmProvider.generateSchema();
 
 	/*
