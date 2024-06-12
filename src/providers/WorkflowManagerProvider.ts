@@ -85,7 +85,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 	constructor (nspAddr: string, username: string, secretStorage: vscode.SecretStorage, port: string, localsave: boolean, localpath: string, timeout: number, fileIgnore: Array<string>) {
 		this.nspAddr = nspAddr;
-		this.username = username;
+		this.username = "";
 		this.password = "";
 		this.authToken = undefined;
 		this.port = port;
@@ -131,6 +131,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
         }
 
 		this.password = await this.secretStorage.get(this.nspAddr + '_password');
+		this.username = await this.secretStorage.get(this.nspAddr + '_username');
 
         if (!this.authToken) {
             this.authToken = new Promise((resolve, reject) => {
@@ -2350,6 +2351,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		quickPick.show();
 		await quickPick.onDidTriggerButton(async button => { // add a server
 			if ((button.iconPath as vscode.ThemeIcon).id === 'add') {
+
 				const id = await vscode.window.showInputBox({ prompt: 'Enter an identifier for your NSP' });
 				const ip = await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' });
 				
@@ -2413,7 +2415,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 			console.log('ip: ', ip)
 			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
-				await config.update('username', await secretStorage.get(ip + '_username'), vscode.ConfigurationTarget.Global);
 				await config.update('activeServer', ip, vscode.ConfigurationTarget.Global);
 				vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
 				this.updateSettings();
@@ -2436,7 +2437,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				if (await this.validateNSPCredentials(ip, usernameInput, passwordInput)) {
 					secretStorage.store(ip + '_username', usernameInput);
 					secretStorage.store(ip + '_password', passwordInput);
-					await config.update('username', usernameInput, vscode.ConfigurationTarget.Global);
 					await config.update('activeServer', ip, vscode.ConfigurationTarget.Global);
 					if (selection[0]) {
 						statusbar_server.text = 'NSP: ' + ip;
@@ -2464,17 +2464,16 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		this.localpath = config.get("localStorage.folder") ?? "";
 
 		const nsp:string = config.get('activeServer') ?? 'localhost';
-		const user:string = config.get('username') ?? 'admin';
 		const port:string = config.get('port') ?? '443';
 
-		if (nsp !== this.nspAddr || user !== this.username || port !== this.port) {
+		if (nsp !== this.nspAddr || port !== this.port) {
 			vscode.window.showWarningMessage('Disconnecting from NSP: ' + this.nspAddr);
 			this._revokeAuthToken();
 			this.nspAddr = nsp;
-			this.username = user;
 			this.port = port;
 			this.nspVersion = undefined;
 		}
+
 		// clear the cache:
 		this.workflow_folders = {};
 		this.workflows = {};

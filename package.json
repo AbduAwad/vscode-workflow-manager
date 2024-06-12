@@ -28,7 +28,7 @@
       "properties": {
         "workflowManager.activeServer": {
           "type": "string",
-          "scope": "application",
+          "scope": "window",
           "description": "NSP server address",
           "readOnly": true
         },
@@ -52,22 +52,10 @@
             }
           }
         },
-        "workflowManager.username": {
-          "type": "string",
-          "default": "username",
-          "scope": "application",
-          "description": "NSP username"
-        },
-        "workflowManager.password": {
-          "description": "NSP password",
-          "type": "null",
-          "scope": "application",
-          "markdownDescription": "[Set Password](command:nokia-wfm.setPassword)"
-        },
         "workflowManager.port":{
           "type": "string",
           "default": "8546",
-          "scope": "application",
+          "scope": "window",
           "description": "NSP WFM port."
         },
         "workflowManager.localStorage.enable": {

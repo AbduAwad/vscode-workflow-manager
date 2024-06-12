@@ -163,3 +163,10 @@ ______
 
 ____
 * The the list of servers are stored in the users VsCode extension settings, so it consistent throughout multiple windows/sessions application wide.
+
+
+## [2.1.1]
+### Updates:
+
+- WFM extension and IM extension both connect to the same NSP.
+- username and password removed from settings as its entered through the quickviews and stored in secret storage.

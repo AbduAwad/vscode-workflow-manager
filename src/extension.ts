@@ -13,7 +13,6 @@ import * as fs from 'fs'; // import filesystem
 // WorkflowManagerProvider is a class that contains all workflow operations and implements the filesystem
 import { WorkflowManagerProvider, CodelensProvider } from './providers'; 
 
-
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
 
 	// ensure alignement of NSP servers between Intent Manager and Workflow Manager upon activation
@@ -30,11 +29,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Global);
 	}
 
-	if (imConfig.get("username") != wfmConfig.get("username")) {
-		let username = imConfig.get("username"); // update the username:
-		wfmConfig.update("username", username, vscode.ConfigurationTarget.Global);
-	}
-
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager');
 	const server : string   = config.get("activeServer")   ?? "localhost"; // active server is the first server in the NSP server list.
@@ -46,12 +40,12 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
 
-	// let servers: Array<string> = config.get("servers") ?? [];
-	// // delete the secret storage for the password if the server is not in the list
-	// servers.forEach((server) => {
-	// 	secretStorage.delete(server + '_username');
-	// 	secretStorage.delete(server + '_password');
-	// });
+	// NSP - Multiple Server Support:
+	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
+	statusbar_server.command = 'nokia-wfm.setServer';
+	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
+	statusbar_server.text = 'NSP: ' + server ?? 'Select Server';
+	statusbar_server.show();
 
 	let servers = config.get("NSPS");
 	console.log('servers: ', servers);
@@ -101,13 +95,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		wfmProvider.generateForm();
 	}));
 
-	// NSP - Multiple Server Support:
-	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
-	statusbar_server.command = 'nokia-wfm.setServer';
-	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
-	statusbar_server.text = 'NSP: ' + server ?? 'Select Server';
-	statusbar_server.show();
-
 	// --- Set Workflow Manager NSP Server when the user clicks the server button
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
 		let updatedConfig = vscode.workspace.getConfiguration('workflowManager');
@@ -129,10 +116,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 			if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 				let server = imConfig.get("activeServer"); // update the active server:
 				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Global);
-			}
-			if (imConfig.get("username") != wfmConfig.get("username")) {
-				let username = imConfig.get("username"); // update the username:
-				wfmConfig.update("username", username, vscode.ConfigurationTarget.Global);
+				statusbar_server.text = 'NSP: ' + server;
 			}
 			wfmProvider.updateSettings();
 		}
