@@ -40,13 +40,10 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
 
-	// NSP - Multiple Server Support:
-	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
-	statusbar_server.command = 'nokia-wfm.setServer';
-	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
-	statusbar_server.text = 'NSP: ' + server ?? 'Select Server';
-	statusbar_server.show();
-
+	// Beginning of implementation for status bar for either Intent Manager or Workflow Manager:
+	const isStatusBarEnabledIM = config.get("intentManager.isStatusBar");
+	const isStatusBarEnabledWFM = config.get("workflowManager.isStatusBar");
+	
 	let servers = config.get("NSPS");
 	console.log('servers: ', servers);
 

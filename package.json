@@ -83,6 +83,13 @@
                 "type": "string"
           },
           "description": "Workflows with these tags will be hidden."
+        }, 
+        "workflowManager.isStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "description": "Flag to check if status bar is enabled or not",
+          "readOnly": true
         }
       }
     },
