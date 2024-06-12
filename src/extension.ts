@@ -16,6 +16,25 @@ import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
 
+	// ensure alignement of NSP servers between Intent Manager and Workflow Manager upon activation
+	let imConfig = vscode.workspace.getConfiguration('intentManager');
+	let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
+
+	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
+		let servers = imConfig.get("NSPS") ?? {};
+		wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
+	}
+
+	if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
+		let server = imConfig.get("activeServer"); // update the active server:
+		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Global);
+	}
+
+	if (imConfig.get("username") != wfmConfig.get("username")) {
+		let username = imConfig.get("username"); // update the username:
+		wfmConfig.update("username", username, vscode.ConfigurationTarget.Global);
+	}
+
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager');
 	const server : string   = config.get("activeServer")   ?? "localhost"; // active server is the first server in the NSP server list.
@@ -111,7 +130,11 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 				let server = imConfig.get("activeServer"); // update the active server:
 				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Global);
 			}
-			vscode.commands.executeCommand('workbench.action.reloadWindow');
+			if (imConfig.get("username") != wfmConfig.get("username")) {
+				let username = imConfig.get("username"); // update the username:
+				wfmConfig.update("username", username, vscode.ConfigurationTarget.Global);
+			}
+			wfmProvider.updateSettings();
 		}
 	}));
 

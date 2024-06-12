@@ -313,6 +313,15 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	}
 
 	/**
+	 * Custom implementation of remove an object from an array by id.
+	 * @param {Array} arr Array to remove object from
+	 * @param {string} id ID of object to remove
+	**/
+	private removeObjectByIp(arr, ip) {
+		return arr.filter(function(obj) { return obj.ip !== ip; });
+	}
+
+	/**
 	 * Method to update workflow documentation to NSP
 	 * @param {vscode.Uri} uri - URI of the file to be read
 	 * @param {string} data - data to be written to the file
@@ -445,7 +454,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 * Method to write a Jinja Template to NSP
 	 * @param {string} name - fileName of the file to be written
 	 * @param {string} data - data to be written to the file
-	 */
+	*/
 	private async _writeTemplate(name: string, data: string): Promise<void> {
 		console.log('executing writeTemplate()'); // when adding a file if the file does not end with .jinja throw a vscode error and return
 		if (!name.endsWith('.jinja')) { // if the newName does not end with .yaml throw a vscode error and return
@@ -2344,12 +2353,16 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				const id = await vscode.window.showInputBox({ prompt: 'Enter an identifier for your NSP' });
 				const ip = await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' });
 				
+				if (!id || !ip) {
+					throw new Error('Invalid input');
+				}
+
 				let server = {id: '', ip: ''};
 				server['id'] = id;
 				server['ip'] = ip;
 
-				// check if test_servers already has this id: 
-				if (test_servers.some(e => e.id === id)) {
+				 
+				if (test_servers.some(e => e.id === id)) { // check if test_servers already has this id:
 					vscode.window.showInformationMessage('Server with id: ' + id + ' already exists');
 				} else {
 					test_servers.push(server);
@@ -2371,11 +2384,10 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						} else {
 							throw new Error("No IP address found in the input string");
 						}
-						const index = servers.indexOf(ip);
 						await vscode.window.showWarningMessage('Are you sure you want to remove ' + selection[0].label + '?', 'Yes', 'No').then(async (value) => {
 							if (value === 'Yes') {
-								servers.splice(index, 1); // remove the server
-								await config.update('servers', servers, vscode.ConfigurationTarget.Global);
+								test_servers = this.removeObjectByIp(test_servers, ip);
+								await config.update('NSPS', test_servers, vscode.ConfigurationTarget.Global);
 								vscode.window.showWarningMessage('Server: ' + ip + ' removed');
 								return;
 							}
