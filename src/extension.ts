@@ -19,6 +19,13 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	let imConfig = vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
 
+	// NSP - Multiple Server Support:
+	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
+	statusbar_server.command = 'nokia-wfm.setServer';
+	statusbar_server.tooltip = 'Set Workflow-Manager NSP Server';
+	statusbar_server.text = 'NSP: ' + wfmConfig.get("activeServer") ?? 'Select Server';
+	statusbar_server.show();
+
 	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
 		let servers = imConfig.get("NSPS") ?? {};
 		wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
@@ -27,6 +34,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 		let server = imConfig.get("activeServer"); // update the active server:
 		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
+		statusbar_server.text = 'NSP: ' + server;
 	}
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
@@ -44,12 +52,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const isStatusBarEnabledIM = config.get("intentManager.isStatusBar");
 	const isStatusBarEnabledWFM = config.get("workflowManager.isStatusBar");
 	
-	// NSP - Multiple Server Support:
-	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
-	statusbar_server.command = 'nokia-wfm.setServer';
-	statusbar_server.tooltip = 'Set Workflow Manager NSP Server';
-	statusbar_server.text = 'NSP: ' + server ?? 'Select Server';
-	statusbar_server.show();
 	let servers = config.get("NSPS");
 	console.log('servers: ', servers);
 

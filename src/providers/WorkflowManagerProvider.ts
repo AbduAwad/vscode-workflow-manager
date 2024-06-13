@@ -5,6 +5,7 @@
 */
 
 import { privateEncrypt } from 'crypto';
+import { config } from 'process';
 import * as vscode from 'vscode';
 
 const DECORATION_SIGNED: vscode.FileDecoration =    new vscode.FileDecoration(
@@ -84,11 +85,12 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 */	
 
 	constructor (nspAddr: string, username: string, secretStorage: vscode.SecretStorage, port: string, localsave: boolean, localpath: string, timeout: number, fileIgnore: Array<string>) {
-		this.nspAddr = nspAddr;
+		const config = vscode.workspace.getConfiguration('workflowManager');
+		this.nspAddr = config.get("activeServer") ?? "localhost";
 		this.username = "";
 		this.password = "";
 		this.authToken = undefined;
-		this.port = port;
+		this.port = config.get("port") ?? "443";
 		this.timeout = timeout;
 		this.fileIgnore = fileIgnore;
 		this.secretStorage = secretStorage;
@@ -2354,7 +2356,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 				const id = await vscode.window.showInputBox({ prompt: 'Enter an identifier for your NSP' });
 				const ip = await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' });
-				
 				if (!id || !ip) {
 					throw new Error('Invalid input');
 				}
@@ -2362,7 +2363,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				let server = {id: '', ip: ''};
 				server['id'] = id;
 				server['ip'] = ip;
-
 				 
 				if (test_servers.some(e => e.id === id)) { // check if test_servers already has this id:
 					vscode.window.showInformationMessage('Server with id: ' + id + ' already exists');
@@ -2443,9 +2443,9 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 			console.log('ip: ', ip)
 			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
-				await config.update('activeServer', ip, vscode.ConfigurationTarget.Global);
+				await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 				vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
-				this.updateSettings();
+				await this.updateSettings();
 				if (selection[0]) {
 					statusbar_server.text = 'NSP: ' + ip;
 					quickPick.hide();
@@ -2459,7 +2459,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				if (await this.validateNSPCredentials(ip, usernameInput, passwordInput)) {
 					secretStorage.store(ip + '_username', usernameInput);
 					secretStorage.store(ip + '_password', passwordInput);
-					await config.update('activeServer', ip, vscode.ConfigurationTarget.Global);
+					await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 					if (selection[0]) {
 						statusbar_server.text = 'NSP: ' + ip;
 						quickPick.hide();
@@ -2475,17 +2475,25 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	}
 
 
-	public updateSettings() {
+	public async updateSettings() {
 
 		console.log("Executing updateSettings()");
+
+		const is_standard_port = await vscode.window.showInformationMessage('WFM: Use standard port?', 'Yes', 'No');
+		if (is_standard_port == 'Yes') {
+			vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
+		} else {
+			let port = await vscode.window.showInputBox({ prompt: 'Enter NSP Port...' });
+			const config = vscode.workspace.getConfiguration('workflowManager'); // enter the port into the config
+			config.update('port', port, vscode.ConfigurationTarget.Workspace);
+		}
 
 		const config = vscode.workspace.getConfiguration('workflowManager');
 		this.timeout = config.get('timeout') ?? 90000; // default 3min
 		this.fileIgnore = config.get('ignoreTags') ?? [];
 		this.localsave = config.get("localStorage.enable") ?? false;
 		this.localpath = config.get("localStorage.folder") ?? "";
-
-		const nsp:string = config.get('activeServer') ?? 'localhost';
+		const nsp:string = config.get('activeServer') ?? 'localhost'; 
 		const port:string = config.get('port') ?? '443';
 
 		if (nsp !== this.nspAddr || port !== this.port) {
@@ -2493,7 +2501,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			this._revokeAuthToken();
 			this.nspAddr = nsp;
 			this.port = port;
-			this.nspVersion = undefined;
+			await this._getNSPversion(); // get the version of the NSP
 		}
 
 		// clear the cache:
