@@ -41,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const config = vscode.workspace.getConfiguration('workflowManager');
 	const server : string   = config.get("activeServer")   ?? "localhost"; // active server is the first server in the NSP server list.
 	const username : string = config.get("username") ?? "admin";
-	const port : string = config.get("port") ?? "";
+	const port : string = config.get("port");
 	const timeout : number = config.get("timeout") ?? 20000;
 	const localsave : boolean = config.get("localStorage.enable") ?? false;
 	const localpath : string = config.get("localStorage.folder") ?? "";

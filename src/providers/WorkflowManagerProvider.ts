@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: BSD-3-Clause
 */
 
-import { privateEncrypt } from 'crypto';
 import { config } from 'process';
 import * as vscode from 'vscode';
 
@@ -90,7 +89,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		this.username = "";
 		this.password = "";
 		this.authToken = undefined;
-		this.port = config.get("port") ?? "443";
+		this.port = config.get("port");
 		this.timeout = timeout;
 		this.fileIgnore = fileIgnore;
 		this.secretStorage = secretStorage;
@@ -2479,13 +2478,19 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 		console.log("Executing updateSettings()");
 
-		const is_standard_port = await vscode.window.showInformationMessage('WFM: Use standard port?', 'Yes', 'No');
-		if (is_standard_port == 'Yes') {
-			vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
-		} else {
-			let port = await vscode.window.showInputBox({ prompt: 'Enter NSP Port...' });
-			const config = vscode.workspace.getConfiguration('workflowManager'); // enter the port into the config
-			config.update('port', port, vscode.ConfigurationTarget.Workspace);
+		const portConfig = vscode.workspace.getConfiguration('workflowManager');
+		console.log('portConfig: ', portConfig.get('port'));
+		console.log('standardPort: ', portConfig.get('standardPort'));
+		if (portConfig.get('port') === "" && portConfig.get('standardPort') === false) {
+			let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
+			if (is_standard_port == 'Yes') {
+				portConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
+				vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
+			} else {
+				let port = await vscode.window.showInputBox({ prompt: 'Enter WFM-NSP Port...' });
+				const config = vscode.workspace.getConfiguration('workflowManager'); // enter the port into the config
+				config.update('port', port, vscode.ConfigurationTarget.Workspace);
+			}
 		}
 
 		const config = vscode.workspace.getConfiguration('workflowManager');
