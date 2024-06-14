@@ -19,12 +19,19 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	let imConfig = vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
 
-	// NSP - Multiple Server Support:
 	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
 	statusbar_server.command = 'nokia-wfm.setServer';
 	statusbar_server.tooltip = 'Set Workflow-Manager NSP Server';
 	statusbar_server.text = 'NSP: ' + wfmConfig.get("activeServer") ?? 'Select Server';
-	statusbar_server.show();
+
+	if (imConfig.get('isStatusBar') == true) {
+		console.log('Intent Manager Status Bar Enabled'); // NSP - Multiple Server Support:
+		statusbar_server.hide();
+		wfmConfig.update("isStatusBar", false, vscode.ConfigurationTarget.Global);
+	} else {
+		statusbar_server.show();
+		wfmConfig.update("isStatusBar", true, vscode.ConfigurationTarget.Global);
+	}
 
 	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
 		let servers = imConfig.get("NSPS") ?? {};
@@ -35,6 +42,13 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		let server = imConfig.get("activeServer"); // update the active server:
 		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
 		statusbar_server.text = 'NSP: ' + server;
+	}
+	if (imConfig.get("standardPort") == true) {
+		wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
+		wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
+	}
+	if (imConfig.get("standardPort") == false) {
+		wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
 	}
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
@@ -47,10 +61,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const localpath : string = config.get("localStorage.folder") ?? "";
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
-
-	// Beginning of implementation for status bar for either 
-	const isStatusBarEnabledIM = config.get("intentManager.isStatusBar");
-	const isStatusBarEnabledWFM = config.get("workflowManager.isStatusBar");
 	
 	let servers = config.get("NSPS");
 	console.log('servers: ', servers);
@@ -108,6 +118,10 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 
 	// --- subscription for changes in the configuration
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (e) => {
+		console.log("Configuration changed");
+		console.log('e.affectsConfiguration(intentManager): ', e.affectsConfiguration('intentManager'))
+		console.log('e.affectsConfiguration(workflowManager): ', e.affectsConfiguration('workflowManager'))
+	
 		if (e.affectsConfiguration('workflowManager')) {
 			wfmProvider.updateSettings();
 		}
@@ -122,6 +136,13 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 				let server = imConfig.get("activeServer"); // update the active server:
 				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
 				statusbar_server.text = 'NSP: ' + server;
+			}
+			if (imConfig.get("standardPort") == true) {
+				wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
+				wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
+			}
+			if (imConfig.get("standardPort") == false) {
+				wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
 			}
 			wfmProvider.updateSettings();
 		}

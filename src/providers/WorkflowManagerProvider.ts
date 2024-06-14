@@ -2229,32 +2229,32 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			for (let i = 0; i < input.length; i++) {
 			if (typeof input[i] === 'object') {
 				Object.keys(input[i]).forEach(function (key) {
-				if (key === 'token_auth') {
-					// console.log('ignore token_auth')
-				} else if (typeof input[i][key] === 'string') {
-					// console.log('string or password')
-					properties.push(uiText(key, input[i][key]))
-				} else if (typeof input[i][key] === 'number') {
-					// console.log('number')
-					properties.push(uiNumber(key, input[i][key]))
-				} else if (typeof input[i][key] === 'boolean') {
-					// console.log('boolean')
-					properties.push(uiBoolean(key, input[i][key]))
-				} else if (
-					typeof input[i][key] === 'object' &&
-					input[i][key] !== null
-				) {
-					if (input[i][key].length > 0) {
-					// console.log('list becomes enum')
-					properties.push(uiEnum(key, input[i][key]))
+					if (key === 'token_auth') {
+						// console.log('ignore token_auth')
+					} else if (typeof input[i][key] === 'string') {
+						// console.log('string or password')
+						properties.push(uiText(key, input[i][key]))
+					} else if (typeof input[i][key] === 'number') {
+						// console.log('number')
+						properties.push(uiNumber(key, input[i][key]))
+					} else if (typeof input[i][key] === 'boolean') {
+						// console.log('boolean')
+						properties.push(uiBoolean(key, input[i][key]))
+					} else if (
+						typeof input[i][key] === 'object' &&
+						input[i][key] !== null
+					) {
+						if (input[i][key].length > 0) {
+						// console.log('list becomes enum')
+						properties.push(uiEnum(key, input[i][key]))
+						} else {
+						// console.log('list is list')
+						properties.push(uiList(key))
+						}
 					} else {
-					// console.log('list is list')
-					properties.push(uiList(key))
+						// unsupported object
+						// console.log('obj/list not supported')
 					}
-				} else {
-					// unsupported object
-					// console.log('obj/list not supported')
-				}
 				})
 			} else if (typeof input[i] === 'string') {
 				let key = input[i]
@@ -2352,17 +2352,14 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		quickPick.show();
 		await quickPick.onDidTriggerButton(async button => { // add a server
 			if ((button.iconPath as vscode.ThemeIcon).id === 'add') {
-
 				const id = await vscode.window.showInputBox({ prompt: 'Enter an identifier for your NSP' });
 				const ip = await vscode.window.showInputBox({ prompt: 'Enter NSP IP Address' });
 				if (!id || !ip) {
 					throw new Error('Invalid input');
 				}
-
 				let server = {id: '', ip: ''};
 				server['id'] = id;
 				server['ip'] = ip;
-				 
 				if (test_servers.some(e => e.id === id)) { // check if test_servers already has this id:
 					vscode.window.showInformationMessage('Server with id: ' + id + ' already exists');
 				} else {
@@ -2440,11 +2437,26 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				throw new Error("No IP address found in the input string");
 			}
 
-			console.log('ip: ', ip)
 			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
 				await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 				vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
+
+				const portConfig = vscode.workspace.getConfiguration('workflowManager');
+					
+				let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
+
+				if (is_standard_port == 'Yes') {
+					portConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
+					portConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
+					vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
+				} else {
+					// show a notification to enter the port in the settings, currently setting it is not working as inputs from both extensions are ovveriding each other
+					vscode.window.showInformationMessage('Enter port for WFM in settings');
+					portConfig.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
+				}
+
 				await this.updateSettings();
+
 				if (selection[0]) {
 					statusbar_server.text = 'NSP: ' + ip;
 					quickPick.hide();
@@ -2459,12 +2471,28 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					secretStorage.store(ip + '_username', usernameInput);
 					secretStorage.store(ip + '_password', passwordInput);
 					await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
+
+					const portConfig = vscode.workspace.getConfiguration('workflowManager');
+					let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
+					if (is_standard_port == 'Yes') {
+						portConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
+						portConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
+						vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
+					} else {
+						// show a notification to enter the port in the settings, currently setting it is not working as inputs from both extensions are ovveriding each other
+						vscode.window.showInformationMessage('Enter port for WFM in settings');
+						portConfig.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
+					}
+
 					if (selection[0]) {
 						statusbar_server.text = 'NSP: ' + ip;
 						quickPick.hide();
 						quickPick.dispose();
 					}
 					vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
+					// reset the port config if they selected a new server:
+					await config.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
+					await config.update('port', '', vscode.ConfigurationTarget.Workspace);
 					await this.updateSettings();
 				} else {
 					vscode.window.showErrorMessage('Invalid Credentials');
@@ -2473,33 +2501,17 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		});
 	}
 
-
 	public async updateSettings() {
 
 		console.log("Executing updateSettings()");
-
-		const portConfig = vscode.workspace.getConfiguration('workflowManager');
-		console.log('portConfig: ', portConfig.get('port'));
-		console.log('standardPort: ', portConfig.get('standardPort'));
-		if (portConfig.get('port') === "" && portConfig.get('standardPort') === false) {
-			let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
-			if (is_standard_port == 'Yes') {
-				portConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
-				vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
-			} else {
-				let port = await vscode.window.showInputBox({ prompt: 'Enter WFM-NSP Port...' });
-				const config = vscode.workspace.getConfiguration('workflowManager'); // enter the port into the config
-				config.update('port', port, vscode.ConfigurationTarget.Workspace);
-			}
-		}
 
 		const config = vscode.workspace.getConfiguration('workflowManager');
 		this.timeout = config.get('timeout') ?? 90000; // default 3min
 		this.fileIgnore = config.get('ignoreTags') ?? [];
 		this.localsave = config.get("localStorage.enable") ?? false;
 		this.localpath = config.get("localStorage.folder") ?? "";
-		const nsp:string = config.get('activeServer') ?? 'localhost'; 
-		const port:string = config.get('port') ?? '443';
+		const nsp:string = config.get('activeServer') ?? 'localhost';
+		const port:string = config.get('port') ?? '';
 
 		if (nsp !== this.nspAddr || port !== this.port) {
 			vscode.window.showWarningMessage('Disconnecting from NSP: ' + this.nspAddr);

@@ -5,7 +5,7 @@
   "version": "2.0.1",
   "icon": "media/Nokia_WFM.png",
   "publisher": "Nokia",
-  "engines": { 
+  "engines": {
     "vscode": "^1.76.0"
   },
   "categories": [
@@ -37,7 +37,7 @@
           "markdownDescription": "List of NSP servers for workspacee",
           "scope": "window",
           "type": "array",
-          "items":{
+          "items": {
             "type": "object",
             "description": "NSP Server entry",
             "properties": {
@@ -52,7 +52,7 @@
             }
           }
         },
-        "workflowManager.standardPort" :{
+        "workflowManager.standardPort": {
           "type": "boolean",
           "default": false,
           "scope": "window",
@@ -84,11 +84,11 @@
         "workflowManager.ignoreTags": {
           "type": "array",
           "scope": "application",
-            "items": {
-                "type": "string"
+          "items": {
+            "type": "string"
           },
           "description": "Workflows with these tags will be hidden."
-        }, 
+        },
         "workflowManager.isStatusBar": {
           "type": "boolean",
           "default": true,
@@ -231,10 +231,10 @@
     "nunjucks": "^3.2.0",
     "vscode-uri": "^3.0.0",
     "yaml": "^2.2.0",
-		"@vscode/codicons": "0.0.20"
+    "@vscode/codicons": "0.0.20"
   },
   "repository": {
-      "type": "git",
-      "url": "https://github.com/nokia/vcode-workflow-manager.git"
+    "type": "git",
+    "url": "https://github.com/nokia/vcode-workflow-manager.git"
   }
 }
