@@ -13,6 +13,10 @@ export class CodelensProvider implements vscode.CodeLensProvider {
 		this.ip = ip;
 	}
 
+	updateServer(ip: string) {
+		this.ip = ip;
+	}
+
 	async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
 		let topOfDocument = new vscode.Range(0, 0, 0, 0);
 

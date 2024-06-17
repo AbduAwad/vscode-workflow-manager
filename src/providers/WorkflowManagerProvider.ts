@@ -1640,7 +1640,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		}
 	}
 
-	/**
+	/*
 	 * Method to Cross launch NSP WebUI.
 	 * Works with NSP New Navigation (since 23.11)
 	*/
@@ -2641,6 +2641,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			let curr_workflow_name = uri.toString().substring(15);
 			var result: [string, vscode.FileType][] = [[curr_workflow_name + '.yaml', vscode.FileType.File], [curr_workflow_name + '.json', vscode.FileType.File], ['README.md', vscode.FileType.File]];
 		}
+		console.log('completed ReadDirectory()');
 		return result;
 	}
 

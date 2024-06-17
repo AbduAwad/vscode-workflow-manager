@@ -15,6 +15,7 @@ import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
 
+	console.log("Activating WFM Extension...");
 	// ensure alignement of NSP servers between Intent Manager and Workflow Manager upon activation
 	let imConfig = vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
@@ -24,6 +25,10 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	statusbar_server.tooltip = 'Set Workflow-Manager NSP Server';
 	statusbar_server.text = 'NSP: ' + wfmConfig.get("activeServer") ?? 'Select Server';
 
+	let header = new CodelensProvider(wfmConfig.get("activeServer")); 
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
+	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
+	
 	if (imConfig.get('isStatusBar') == true) {
 		console.log('Intent Manager Status Bar Enabled'); // NSP - Multiple Server Support:
 		statusbar_server.hide();
@@ -39,9 +44,13 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	}
 
 	if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
-		let server = imConfig.get("activeServer"); // update the active server:
+		let server:string = imConfig.get("activeServer"); // update the active server:
 		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
 		statusbar_server.text = 'NSP: ' + server;
+
+		header.updateServer(server);
+		context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
+		context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 	}
 	if (imConfig.get("standardPort") == true) {
 		wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
@@ -70,9 +79,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	wfmProvider.extContext=context;
 	console.log("Workflow Manager Provider registered");
 	
-	const header = new CodelensProvider(server); 
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
-	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
+
 
 	// // PUBLISHING COMMANDS
 	// // --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
@@ -133,9 +140,12 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 				wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
 			}
 			if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
-				let server = imConfig.get("activeServer"); // update the active server:
+				let server:string = imConfig.get("activeServer"); // update the active server:
 				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
 				statusbar_server.text = 'NSP: ' + server;
+				header.updateServer(server);
+				context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
+				context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 			}
 			if (imConfig.get("standardPort") == true) {
 				wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
