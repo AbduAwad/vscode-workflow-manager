@@ -56,8 +56,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		});
 
 		header.ip = server;
-		context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
-		context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 	}
 	if (imConfig.get("standardPort") == true) {
 		wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
@@ -155,8 +153,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 					}
 				});
 				header.ip = server;
-				context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
-				context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 			}
 			if (imConfig.get("standardPort") == true) {
 				wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
