@@ -205,28 +205,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		}
 	}
 
-		/**
-	 * Extract error message from RESTCONF response and raise exception.
-	 *  
-	 * @param {string} errmsg Provide information about what failed
-	 * @param {{[key: string]: any}} response HTTP response to extract error message
-	 * @param {boolean} show Always show error message, for cases where vsCode is NOT handling exceptions
-	 */		
-
-	private _raiseRestconfError(errmsg: string, response: {[key: string]: any}, show:boolean=false) {
-		if (Object.keys(response).includes("ietf-restconf:errors")) {
-			while (response && (Object.keys(response)[0]!="error"))
-				response = response[Object.keys(response)[0]];
-
-			errmsg += "\n"+response["error"][0]["error-message"];
-		}
-
-		if (show)
-			vscode.window.showErrorMessage(errmsg);
-
-		throw vscode.FileSystemError.NoPermissions(errmsg);
-	}
-
 	/**
 	 * Private wrapper method to call NSP APIs. Method sets http request timeout.
 	 * Common error handling and logging is centralized here.
@@ -253,27 +231,68 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	/**
 	 * Retrieve and store NSP release in this.nspVersion.
 	 * Release information will be shown to vsCode user.
-	 * 
 	 * Note: currently used to select OpenSearch API version
-	 */	
-
+	*/	
 	private async _getNSPversion(): Promise<void> {
-		console.log("Executing getNSPversion()");
-
-		const url = "https://"+this.nspAddr+"/internal/shared-app-banner-utils/rest/api/v1/appBannerUtils/release-version";
-
-		const response: any = await this._callNSP(url, {method: "GET"});
-		if (!response)
-			throw vscode.FileSystemError.Unavailable("Lost connection to NSP");
-		if (!response.ok)
-			this._raiseRestconfError("Getting NSP release failed!", await response.json());
-		
-		const json = await response.json();
-
-		const version = json["response"]["data"]["nspOSVersion"];		
-		this.nspVersion = version.match(/\d+\.\d+\.\d+/)[0].split('.').map(parseInt);
-		vscode.window.showInformationMessage("NSP version: "+version);
+		console.log("Executing _getNSPversion()");
+	
+		try {
+			// Get auth token
+			await this._getAuthToken(); 
+			const token = await this.authToken;
+	
+			if (!token) {
+				throw new Error('NSP is not reachable');
+			}
+	
+			// Define the URL for the NSP API call
+			const url = "https://" + this.nspAddr + "/internal/shared-app-banner-utils/rest/api/v1/appBannerUtils/release-version";
+	
+			// Log the URL and token for debugging
+			console.log('NSP API URL:', url);
+			console.log('Auth Token:', token);
+	
+			// Call the NSP API
+			const response: any = await this._callNSP(url, {
+				method: 'GET',
+				headers: {
+					'Cache-Control': 'no-cache',
+					'Authorization': 'Bearer ' + token
+				}
+			});
+	
+			// Check if response is null or undefined
+			if (!response) {
+				throw new Error("Lost connection to NSP");
+			}
+	
+			// Log the raw response
+			console.log('Raw response:', response);
+	
+			// Parse the JSON response
+			const json = await response.json();
+			console.log('Parsed JSON:', json);
+	
+			// Extract version information
+			const version = json["response"]["data"]["nspOSVersion"];
+			console.log('Extracted version:', version);
+	
+			// Parse the version string
+			this.nspVersion = version.match(/\d+\.\d+\.\d+/)[0].split('.').map(num => parseInt(num, 10));
+			console.log('Parsed NSP version:', this.nspVersion);
+	
+			// Display the NSP version to the user
+			vscode.window.showInformationMessage("NSP version: " + version);
+	
+		} catch (error) {
+			// Log the error for debugging
+			console.error('Error in _getNSPversion:', error);
+	
+			// Display an error message to the user
+			vscode.window.showErrorMessage(`Failed to retrieve NSP version: ${error.message}`);
+		}
 	}
+	
 
 	/**
 	 * Checks if NSP is running at least a specific release
