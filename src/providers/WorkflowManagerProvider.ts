@@ -257,7 +257,10 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 		let json = await response.json();
 		const version = json["response"]["data"]["nspOSVersion"];		
+		console.log('version: ', version);
+
 		this.nspVersion = version.match(/\d+\.\d+\.\d+/)[0].split('.').map(num => parseInt(num, 10));
+		console.log('this.nspVersion: ', this.nspVersion);
 		vscode.window.showInformationMessage("NSP version: " + version);
 	}
 

@@ -30,12 +30,12 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 	
 	// Ensure the status bar is in the correct state on activation: globalState is a setting that is saved between sessions and its not visible to the user
-	if (context.globalState.get('isStatusBar', false)) {
+	
+	if (context.globalState.get('isStatusBar') != true) {
 		statusbar_server.show();
 		context.globalState.update('isStatusBar', true);
 	} else {
 		statusbar_server.hide();
-		context.globalState.update('isStatusBar', false);
 	}
 
 	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
