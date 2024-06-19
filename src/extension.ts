@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Nokia
+ * Copyright 2024 Nokia
  * Licensed under the BSD 3-Clause License.
  * SPDX-License-Identifier: BSD-3-Clause
 */
@@ -10,7 +10,7 @@ import * as vscode from 'vscode'; // import the vscode module (VS Code API)
 import * as os from 'os'; //  import operating system
 import * as fs from 'fs'; // import filesystem
 
-// WorkflowManagerProvider is a class that contains all workflow operations and implements the filesystem
+// WorkflowManagerProvider is a class that contains all workflow operations and implements the virtual filesystem
 import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
@@ -20,17 +20,17 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	let imConfig = vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
 
+	// create statusbar item: 
 	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
 	statusbar_server.command = 'nokia-wfm.setServer';
 	statusbar_server.tooltip = 'Set NSP Server';
 	statusbar_server.text = 'NSP: ' + wfmConfig.get("activeServer") ?? 'Select Server';
 
-	let header = new CodelensProvider(wfmConfig.get("activeServer")); 
+	let header = new CodelensProvider(wfmConfig.get("activeServer")); // create a new header for the codelens
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 	
 	// Ensure the status bar is in the correct state on activation: globalState is a setting that is saved between sessions and its not visible to the user
-	
 	if (context.globalState.get('isStatusBar') != true) {
 		statusbar_server.show();
 		context.globalState.update('isStatusBar', true);

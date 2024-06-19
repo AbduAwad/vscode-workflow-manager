@@ -266,12 +266,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				throw new Error("Lost connection to NSP");
 			}
 	
-			// Log the raw response
-			console.log('Raw response:', response);
-	
 			// Parse the JSON response
 			const json = await response.json();
-			console.log('Parsed JSON:', json);
 	
 			// Extract version information
 			const version = json["response"]["data"]["nspOSVersion"];
@@ -2580,6 +2576,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			await this._getNSPversion(); // get the version of the NSP
 		}
 
+		console.log('this.port: ', this.port);
 		if (uri.toString() === "wfm:/") { // if root
 			return [['actions', vscode.FileType.Directory],['workflows', vscode.FileType.Directory], ['templates', vscode.FileType.Directory]]; // return the actions and workflows and templates.
 		} else if (uri.toString() === "wfm:/workflows") { // if were in workflows directory, set the url to get the workflows
@@ -2702,7 +2699,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		}
 
 		let path_length = uri.toString().split('/').length;
-		console.log('path_length: ', path_length);
 		if (uri.toString().startsWith('wfm:/workflows/') && path_length > 3 && !(uri.toString().endsWith('.yaml') || uri.toString().endsWith('.json') || uri.toString().endsWith('.md'))) {
 			throw vscode.FileSystemError.FileNotFound('No Permission to add a folder/file within a workflow folder!');
 		}

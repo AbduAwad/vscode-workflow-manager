@@ -103,73 +103,77 @@ ____
     - Users cannot delete any of the workflow files, as each of the files is associateed with the workflow. In order to delete a workflow and its associative files, the user must delete the associative workflow folder.
     - Users cannot rename any of the three workflow files as the name of the view, the definition, and the workflow folder must be the same. Renaming workflows is supported by renaming the associative workflow folder which will automatically rename the workflow files within that folder to match. 
 
+_____
 
 ## [2.0.1]
-### Updates: Multiple Server Support
-* Set Server Support Added
-*
-    1. Users can click on the status bar Item that displays the current NSP server the extension is connected to.
 
-_____
+**Updates:**
 
-
-
-<p align="center">
-    <img src="media/statusbar.png" width="450" title="hover text">
-</p>
-
-______
-* 
-    2. Once the above status bar is clicked the a drop-down menu will appear allowing the user to select an NSP server for the extension to connect to.
-
-______
-
-<p align="center">
-    <img src="media/servers.png" width="450" title="hover text">
-</p>
-
+* Bug Fixes: 
+    - Fixed issues with the generateSchema function and modified the wfm-schema-builder Jinja template to prevent red highlights/warnings in the workflow definitions if they are correct.
+    - Workflow folder names containing dots (.) were causing unexpected behavior. Addressed the issue with workflow folder names containing dots. This fix allows workflow names to include dots without causing errors.
 ____
+## [3.0.0] Multiple Server Support
 
-* Caching of NSP user/pass credentials:
-
-    * After selecting an NSP server from the dropdown menu, the user is prompted to enter an NSP username and password. If the credentials are valid and the connection to the NSP is successful, the credentials are cached in VS Code Secret Storage. As a result, the user can select the server from the dropdown menu to automatically connect without re-entering credentials.
-
-* NSP Credentials Error-checking:
-
-    * If a user enters incorrect credentials an error message will be thrown, and they will be re-prompted to select a server. If the credentails entered don't connect to NSP for whatever reason credentials are not cached.
-    * Also if the Authentication Token for NSP fails for any reason an error message will be thrown, and the user will also be re-prompted to select a server
-
-____
-* Adding NSP servers:
-    * Users can add NSP's by clicking on the '+' button on the top right of the quickview. This will open in input box where you can enter the IP address of the NSP server you would like to add.
-
-______
+### Set Server Support Added
+- Users can now connect to multiple NSP servers on different VsCode Windows.
+- The current NSP server connection is displayed in the status bar. This connection is workspace-wide, allowing different VS Code workspaces/windows to connect to different NSP servers.
+- The list of servers is stored in the user's VS Code extension settings, ensuring consistency across multiple windows/sessions (application-wide).
 
 <p align="center">
-    <img src="media/addServer.png" width="550" title="hover text">
+    <img src="media/statusbar.png" width="450" alt="Status bar showing current NSP server">
 </p>
 
-
-_____
-
-* Removing NSP servers:
-    * Users can remove NSP's by clicking on the '-' button on the top right of the quickview. This will remove the selected NSP server from the list of servers.
-
-______
+### Server Selection
+- Clicking the status bar opens a drop-down menu where users can select an NSP server to connect to.
 
 <p align="center">
-    <img src="media/removeServer.png" width="550" title="hover text">
+    <img src="media/servers.png" width="550" alt="Drop-down menu for selecting NSP servers">
 </p>
 
-____
-* The the list of servers are stored in the users VsCode extension settings, so it consistent throughout multiple windows/sessions application wide.
+### Caching of NSP User/Password Credentials
+- After selecting an NSP server, users are prompted to enter a username and password.
+- If the credentials are valid and the connection is successful, the credentials are cached in VS Code Secret Storage.
+- Cached credentials allow automatic reconnection without re-entering credentials.
+- **Note:** Username and password are removed from settings and entered through the quick views, then stored in secret storage.
 
+### NSP Credentials Error-Checking
+- Incorrect credentials prompt an error message and a re-prompt to select a server.
+- If the credentials don't connect to NSP, they are not cached.
+- Authentication token failures also prompt an error message and a re-prompt to select a server.
 
-## [2.1.1]
-### Updates:
+### Adding NSP Servers
+- Users can add NSP servers by clicking the '+' button in the quick view. This opens an input box for entering the IP address of the NSP server to add.
 
-- WFM extension and IM extension both connect to the same NSP.
-- username and password removed from settings as its entered through the quickviews and stored in secret storage.
-- Added a way for users to reset the credentials for an IP they are connected to when clicking the settings icon: 
+<p align="center">
+    <img src="media/addServer.png" width="550" alt="Input box for adding NSP servers">
+</p>
 
-![alt text](media/image-1.png)
+### Removing NSP Servers
+- Users can remove NSP servers by clicking the '-' button in the quick view. This removes the selected NSP server from the list.
+
+<p align="center">
+    <img src="media/removeServer.png" width="550" alt="Option to remove NSP servers">
+</p>
+
+### Reset Username/Password for a Server
+- Users can reset the credentials for an IP they are connected to by clicking the settings icon.
+
+<p align="center">
+    <img src="media/resetCredentials.png" width="550" alt="Option to reset credentials">
+</p>
+
+## Updates: NOKIA_WFM and NOKIA_IM Extension NSP Connection
+- Both the WFM and IM extensions connect to the same NSP on a given VS Code workspace (window).
+
+<p align="center">
+    <img src="media/multiServer.png" width="400" alt="Port selection for NSP connection">
+</p>
+
+- When an NSP is selected from the dropdown, VS Code prompts the user to choose between a standard port and a non-standard port.
+  - If a standard port is selected, the NSP connection for NOKIA_WFM and NOKIA_IM will use the standard port, and the extensions will be set to no port.
+  - If a non-standard port is required, users must enter the port for NOKIA_WFM and NOKIA_IM in the extension settings.
+
+<p align="center">
+    <img src="media/port.png" width="550" alt="Port selection for NSP connection">
+</p>
