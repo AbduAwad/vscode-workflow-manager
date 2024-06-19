@@ -1,10 +1,15 @@
 # NOKIA Workflow Manager VsCode extension
 
-This VsCode extension connects to Nokia NSP WFM to facilitate workflow development and delivery.
+<p align="center">
+    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/Nokia_WFM.png" width="250">
+</p>
+
+
+This VsCode extension connects to Nokia NSP WFM to facilitate and optimise workflow development and delivery within the VsCode IDE. A virtual filesystem is implemented so that your NSP Workflow Manager's workflows, actions, and tempates can be developed and delivered within the VsCode editor.
 
 ## License
 
-Copyright 2023 Nokia
+Copyright 2024 Nokia
 
 Licensed under the BSD 3-Clause License.
 
@@ -36,8 +41,12 @@ To compile and generate the VSIX for installation, run:
     npm run compile
     vsce package
 
+## Contribute
 
-## VsCode Extension Development
+Contributions are welcome via normal pull request procedure.
+
+### VsCode Extension Development
+
 1. To compile the typescript extension run:
 
 ```bash
@@ -51,7 +60,7 @@ npm run compile
     - ctrl+shift+F5
 ____
 
-## Build VSIX
+### Build VSIX
 
 Please make sure, you've got the following installed in your environment:
 
@@ -107,9 +116,6 @@ _____
 ![alt text](media/vsix.png)
 
 ____
-
-## Contribute
-Contributions are welcome via normal pull request procedure.
 
 ## Extension Settings
 
