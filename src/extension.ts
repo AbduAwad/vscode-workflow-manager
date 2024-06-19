@@ -61,6 +61,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
 		wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
 	}
+
 	if (imConfig.get("standardPort") == false) {
 		wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
 	}
@@ -146,8 +147,8 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 				let server:string = imConfig.get("activeServer"); // update the active server:
 				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
 				statusbar_server.text = 'NSP: ' + server;
-				// remove the old header 
-				context.subscriptions.forEach((element) => {
+				
+				context.subscriptions.forEach((element) => { // remove the old header 
 					if (element instanceof CodelensProvider) {
 						element.dispose();
 					}
@@ -159,7 +160,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 				wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
 			}
 			if (imConfig.get("standardPort") == false) {
-				wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
+				await wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
 			}
 			wfmProvider.updateSettings();
 		}

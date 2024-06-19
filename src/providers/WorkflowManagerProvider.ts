@@ -2467,61 +2467,52 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			}
 
 			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
-				await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
-				vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
-
 				const portConfig = vscode.workspace.getConfiguration('workflowManager');
-					
+				const imConfig = vscode.workspace.getConfiguration('intentManager');
 				let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
-
 				if (is_standard_port == 'Yes') {
 					portConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
 					portConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
-					vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
+					imConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
+					imConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
+					await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 				} else {
-					// show a notification to enter the port in the settings, currently setting it is not working as inputs from both extensions are ovveriding each other
-					vscode.window.showInformationMessage('Enter port for WFM in settings');
-					portConfig.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
+					await this.updatePort();	
+					await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);			
 				}
-
-				await this.updateSettings();
-
 				if (selection[0]) {
 					statusbar_server.text = 'NSP: ' + ip;
 					quickPick.hide();
 					quickPick.dispose();
 				}
+				vscode.window.showInformationMessage('Connecting to NSP: ' + ip);	
+				await this.updateSettings();
 			} else { // If the username and password are not cached, prompt the user for the username and password
 				const usernameInput: string = await vscode.window.showInputBox({ prompt: 'Enter Username...' }) ?? '';
 				const passwordInput: string = await vscode.window.showInputBox({ password: true,  prompt: 'Enter Password...' }) ?? '';
 
-				console.log(await this.validateNSPCredentials(ip, usernameInput, passwordInput));
 				if (await this.validateNSPCredentials(ip, usernameInput, passwordInput)) {
 					secretStorage.store(ip + '_username', usernameInput);
 					secretStorage.store(ip + '_password', passwordInput);
-					await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
-
 					const portConfig = vscode.workspace.getConfiguration('workflowManager');
+					const imConfig = vscode.workspace.getConfiguration('intentManager');
 					let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
 					if (is_standard_port == 'Yes') {
 						portConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
 						portConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
-						vscode.window.showInformationMessage('Connecting to NSP: ' + vscode.workspace.getConfiguration('workflowManager').get('activeServer') ?? 'localhost' + ' on standard port');
+						imConfig.update('standardPort', true, vscode.ConfigurationTarget.Workspace);
+						imConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
+						await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 					} else {
-						// show a notification to enter the port in the settings, currently setting it is not working as inputs from both extensions are ovveriding each other
-						vscode.window.showInformationMessage('Enter port for WFM in settings');
-						portConfig.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
+						await this.updatePort();	
+						await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);			
 					}
-
 					if (selection[0]) {
 						statusbar_server.text = 'NSP: ' + ip;
 						quickPick.hide();
 						quickPick.dispose();
 					}
 					vscode.window.showInformationMessage('Connecting to NSP: ' + ip);
-					// reset the port config if they selected a new server:
-					await config.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
-					await config.update('port', '', vscode.ConfigurationTarget.Workspace);
 					await this.updateSettings();
 				} else {
 					vscode.window.showErrorMessage('Invalid Credentials');
@@ -2530,6 +2521,26 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		});
 	}
 
+	public async updatePort() {
+		const portConfig = vscode.workspace.getConfiguration('workflowManager');
+		const imConfig = vscode.workspace.getConfiguration('intentManager');
+		
+		let wfmPort = await vscode.window.showInputBox({ prompt: 'Enter Port for NSP Workflow Manager...' });
+		await portConfig.update('port', wfmPort, vscode.ConfigurationTarget.Workspace);
+		await portConfig.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
+		
+		if (imConfig != undefined) {
+			let imPort = await vscode.window.showInputBox({ prompt: 'Enter Port for NSP Intent Manager...' });
+			await imConfig.update('port', imPort, vscode.ConfigurationTarget.Workspace);
+			await imConfig.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
+		}
+
+		await this.updateSettings();
+	}
+
+	/**
+	 * Update WorkflowManagerProvider after configuration changes 
+	*/	
 	public async updateSettings() {
 
 		console.log("Executing updateSettings()");
@@ -2540,7 +2551,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		this.localsave = config.get("localStorage.enable") ?? false;
 		this.localpath = config.get("localStorage.folder") ?? "";
 		const nsp:string = config.get('activeServer') ?? 'localhost';
-		const port:string = config.get('port') ?? '';
+		const port:string = config.get('port');
 
 		if (nsp !== this.nspAddr || port !== this.port) {
 			vscode.window.showWarningMessage('Disconnecting from NSP: ' + this.nspAddr);
