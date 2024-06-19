@@ -37,6 +37,13 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		statusbar_server.hide();
 	}
 
+	// Ensure the status bar is in the correct state on activation
+	if (context.globalState.get('isStatusBar', false)) {
+		statusbar_server.show();
+	} else {
+		statusbar_server.hide();
+	}
+
 	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
 		let servers = imConfig.get("NSPS") ?? {};
 		wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
