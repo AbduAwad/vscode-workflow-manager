@@ -171,10 +171,23 @@ ____
     <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/multiServer.png" width="400" alt="Port selection for NSP connection">
 </p>
 
+### Set Ports: 
+
 - When an NSP is selected from the dropdown, VS Code prompts the user to choose between a standard port and a non-standard port.
-  - If a standard port is selected, the NSP connection for NOKIA_WFM and NOKIA_IM will use the standard port, and the extensions will be set to no port.
-  - If a non-standard port is required, users must enter the port for NOKIA_WFM and NOKIA_IM in the extension settings.
+
+- If yes is selected (standard port), the NSP connection for NOKIA_WFM and NOKIA_IM will use the standard port, and the extensions will be set to no port.
 
 <p align="center">
     <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/port.png" width="550" alt="Port selection for NSP connection">
 </p>
+
+  - If no is selected, the user will be prompted to enter a port for the NOKIA_WFM and the NOKIA_IM NSP connections.
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/IM_PORT.png" width="550" alt="Port selection for NSP connection">
+</p>
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/WFM_PORT.png" width="550" alt="Port selection for NSP connection">
+</p>
+
