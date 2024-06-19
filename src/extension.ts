@@ -15,7 +15,6 @@ import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
 
-	console.log("Activating WFM Extension...");
 	// ensure alignement of NSP servers between Intent Manager and Workflow Manager upon activation
 	let imConfig = vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
@@ -78,12 +77,10 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
 	
 	let servers = config.get("NSPS");
-	console.log('servers: ', servers);
 
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
 	context.subscriptions.push(vscode.window.registerFileDecorationProvider(wfmProvider));
 	wfmProvider.extContext=context;
-	console.log("Workflow Manager Provider registered");
 	
 	// // PUBLISHING COMMANDS
 	// // --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
@@ -129,10 +126,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 
 	// --- subscription for changes in the configuration
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (e) => {
-		console.log("Configuration changed");
-		console.log('e.affectsConfiguration(intentManager): ', e.affectsConfiguration('intentManager'))
-		console.log('e.affectsConfiguration(workflowManager): ', e.affectsConfiguration('workflowManager'))
-	
+
 		if (e.affectsConfiguration('workflowManager')) {
 			wfmProvider.updateSettings();
 		}
@@ -187,10 +181,8 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		const repoUri = vscode.Uri.joinPath(gitUri, 'nsp-workflow');
 
 		if (fs.existsSync(repoUri.fsPath)) {
-			console.log('nsp-workflow already exists, add to workspace');
 			vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: repoUri});
 		} else {
-			console.log('clone nsp-workflow to add to workspace');
 			vscode.commands.executeCommand('git.clone', 'https://github.com/nokia/nsp-workflow.git', gitPath);
 		}
 	}));
