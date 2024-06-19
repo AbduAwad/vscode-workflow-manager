@@ -14,10 +14,12 @@ import * as fs from 'fs'; // import filesystem
 import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
-
+	console.log('Congratulations, your extension "nokia-wfm" is now active!'); // log a message to the console
 	// ensure alignement of NSP servers between Intent Manager and Workflow Manager upon activation
-	let imConfig = vscode.workspace.getConfiguration('intentManager');
-	let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
+	let imConfig = await vscode.workspace.getConfiguration('intentManager');
+	let wfmConfig = await vscode.workspace.getConfiguration('workflowManager');
+	console.log('Intent Manager Configuration:', imConfig);
+	console.log('Workflow Manager Configuration:', wfmConfig);
 
 	// create statusbar item: 
 	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
@@ -37,6 +39,8 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		statusbar_server.hide();
 	}
 
+	console.log('isStatusBar:', context.globalState.get('isStatusBar'));
+
 	// Ensure the status bar is in the correct state on activation
 	if (context.globalState.get('isStatusBar', false)) {
 		statusbar_server.show();
@@ -45,22 +49,23 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	}
 
 	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
-		let servers = imConfig.get("NSPS") ?? {};
+		let servers = imConfig.get("NSPS") ?? [];
+		console.log('Updating Workflow Manager NSP Servers:', servers);
 		wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
+		console.log('Workflow Manager NSP Servers:', wfmConfig.get("NSPS"));
 	}
 
 	if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 		let server:string = imConfig.get("activeServer"); // update the active server:
+		console.log('Updating Workflow Manager Active Server:', server);
 		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
-		statusbar_server.text = 'NSP: ' + server;
-
-		// remove the old header 
+		console.log('Workflow Manager Active Server:', wfmConfig.get("activeServer"));
+		statusbar_server.text = 'NSP: ' + server; 
 		context.subscriptions.forEach((element) => {
 			if (element instanceof CodelensProvider) {
 				element.dispose();
 			}
 		});
-
 		header.ip = server;
 	}
 	if (imConfig.get("standardPort") == true) {
@@ -161,7 +166,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 				wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
 			}
 			if (imConfig.get("standardPort") == false) {
-				await wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
+				wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
 			}
 			wfmProvider.updateSettings();
 		}
