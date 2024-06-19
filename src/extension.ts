@@ -9,17 +9,16 @@
 import * as vscode from 'vscode'; // import the vscode module (VS Code API)
 import * as os from 'os'; //  import operating system
 import * as fs from 'fs'; // import filesystem
-
+import time = require('timers'); // import timers
 // WorkflowManagerProvider is a class that contains all workflow operations and implements the virtual filesystem
 import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
-	console.log('Congratulations, your extension "nokia-wfm" is now active!'); // log a message to the console
-	// ensure alignement of NSP servers between Intent Manager and Workflow Manager upon activation
+
+
+
 	let imConfig = await vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = await vscode.workspace.getConfiguration('workflowManager');
-	console.log('Intent Manager Configuration:', imConfig);
-	console.log('Workflow Manager Configuration:', wfmConfig);
 
 	// create statusbar item: 
 	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
@@ -30,22 +29,19 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	let header = new CodelensProvider(wfmConfig.get("activeServer")); // create a new header for the codelens
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
-	
+
 	// Ensure the status bar is in the correct state on activation: globalState is a setting that is saved between sessions and its not visible to the user
-	if (context.globalState.get('isStatusBar') != true) {
-		statusbar_server.show();
-		context.globalState.update('isStatusBar', true);
-	} else {
-		statusbar_server.hide();
-	}
+	// get the extension id of another extension
+	const imExtension = vscode.extensions.getExtension('Nokia.nokia-intent-manager');
+	console.log('Intent Manager Extension:', imExtension);
+	console.log('Intent Manager Extension active:', imExtension.isActive);
 
-	console.log('isStatusBar:', context.globalState.get('isStatusBar'));
-
-	// Ensure the status bar is in the correct state on activation
-	if (context.globalState.get('isStatusBar', false)) {
-		statusbar_server.show();
-	} else {
+	
+	await new Promise(resolve => setTimeout(resolve, 500)); // sleep for 0.5 second so IM loads first:
+	if (imExtension.isActive) {
 		statusbar_server.hide();
+	} else {
+		statusbar_server.show();
 	}
 
 	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
@@ -234,4 +230,9 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 
 	// Add Workflow Manager folder to workspace
 	vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: vscode.Uri.parse('wfm:/'), name: "Workflow Manager" });
+}
+
+export function deactivate(context: vscode.ExtensionContext) { // function from its main module to perform cleanup tasks on VS Code shutdow
+ 	console.log('Deactivating Nokia Workflow Manager Extension');
+	// IMPLEMENT THIS: To cleanup settings and resources especially things liek statusbar etc...
 }
