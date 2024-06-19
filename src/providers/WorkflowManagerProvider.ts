@@ -2534,7 +2534,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			await imConfig.update('port', imPort, vscode.ConfigurationTarget.Workspace);
 			await imConfig.update('standardPort', false, vscode.ConfigurationTarget.Workspace);
 		}
-
 		await this.updateSettings();
 	}
 

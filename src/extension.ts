@@ -141,7 +141,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 			const imConfig = vscode.workspace.getConfiguration('intentManager');
 			let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
 			if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
-				let servers = imConfig.get("NSPS") ?? {};
+				let servers = imConfig.get("NSPS") ?? [];
 				wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
 			}
 			if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
