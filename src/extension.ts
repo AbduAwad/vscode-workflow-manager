@@ -15,8 +15,6 @@ import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
 
-
-
 	let imConfig = await vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = await vscode.workspace.getConfiguration('workflowManager');
 
@@ -30,15 +28,10 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 
-	// Ensure the status bar is in the correct state on activation: globalState is a setting that is saved between sessions and its not visible to the user
 	// get the extension id of another extension
-	const imExtension = vscode.extensions.getExtension('Nokia.nokia-intent-manager');
-	console.log('Intent Manager Extension:', imExtension);
-	console.log('Intent Manager Extension active:', imExtension.isActive);
-
-	
+	const imExtension = vscode.extensions.getExtension('Nokia.nokia-intent-manager');	
 	await new Promise(resolve => setTimeout(resolve, 500)); // sleep for 0.5 second so IM loads first:
-	if (imExtension.isActive) {
+	if (imExtension.isActive) { // if the IM extension is active
 		statusbar_server.hide();
 	} else {
 		statusbar_server.show();
