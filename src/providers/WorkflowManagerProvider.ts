@@ -235,51 +235,45 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	*/	
 	private async _getNSPversion(): Promise<void> {
 		console.log("Executing _getNSPversion()");
-	
-		try {
-			// Get auth token
-			await this._getAuthToken(); 
-			const token = await this.authToken;
-	
-			if (!token) {
-				throw new Error('NSP is not reachable');
-			}
-	
-			// Define the URL for the NSP API call
-			const url = "https://" + this.nspAddr + "/internal/shared-app-banner-utils/rest/api/v1/appBannerUtils/release-version";
-	
-			// Log the URL and token for debugging
-			console.log('NSP API URL:', url);
-			console.log('Auth Token:', token);
-	
-			// Call the NSP API
-			const response: any = await this._callNSP(url, {
-				method: 'GET',
-				headers: {
-					'Cache-Control': 'no-cache',
-					'Authorization': 'Bearer ' + token
-				}
-			});
-	
-			// Check if response is null or undefined
-			if (!response) {
-				throw new Error("Lost connection to NSP");
-			}
-	
-			// Parse the JSON response
-			const json = await response.json();
-	
-			// Extract version information
-			const version = json["response"]["data"]["nspOSVersion"];
-			console.log('Extracted version:', version);
-	
-			// Parse the version string
-			this.nspVersion = version.match(/\d+\.\d+\.\d+/)[0].split('.').map(num => parseInt(num, 10));
-			console.log('Parsed NSP version:', this.nspVersion);
-			vscode.window.showInformationMessage("NSP version: " + version);
-		} catch (error) {
-			vscode.window.showErrorMessage(`Failed to retrieve NSP version: ${error}`);
+		await this._getAuthToken(); 
+		const token = await this.authToken;
+
+		if (!token) {
+			throw new Error('NSP is not reachable');
 		}
+
+		// Define the URL for the NSP API call
+		const url = "https://" + this.nspAddr + "/internal/shared-app-banner-utils/rest/api/v1/appBannerUtils/release-version";
+
+		// Log the URL and token for debugging
+		console.log('NSP API URL:', url);
+		console.log('Auth Token:', token);
+
+		// Call the NSP API
+		const response: any = await this._callNSP(url, {
+			method: 'GET',
+			headers: {
+				'Cache-Control': 'no-cache',
+				'Authorization': 'Bearer ' + token
+			}
+		});
+
+		// Check if response is null or undefined
+		if (!response) {
+			throw new Error("Lost connection to NSP");
+		}
+
+		// Parse the JSON response
+		const json = await response.json();
+
+		// Extract version information
+		const version = json["response"]["data"]["nspOSVersion"];
+		console.log('Extracted version:', version);
+
+		// Parse the version string
+		this.nspVersion = version.match(/\d+\.\d+\.\d+/)[0].split('.').map(num => parseInt(num, 10));
+		console.log('Parsed NSP version:', this.nspVersion);
+		vscode.window.showInformationMessage("NSP version: " + version);
 	}
 	
 
