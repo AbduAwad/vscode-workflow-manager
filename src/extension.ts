@@ -9,8 +9,7 @@
 import * as vscode from 'vscode'; // import the vscode module (VS Code API)
 import * as os from 'os'; //  import operating system
 import * as fs from 'fs'; // import filesystem
-import time = require('timers'); // import timers
-// WorkflowManagerProvider is a class that contains all workflow operations and implements the virtual filesystem
+
 import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:

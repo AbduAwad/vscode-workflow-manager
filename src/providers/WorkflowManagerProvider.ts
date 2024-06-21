@@ -276,16 +276,9 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			// Parse the version string
 			this.nspVersion = version.match(/\d+\.\d+\.\d+/)[0].split('.').map(num => parseInt(num, 10));
 			console.log('Parsed NSP version:', this.nspVersion);
-	
-			// Display the NSP version to the user
 			vscode.window.showInformationMessage("NSP version: " + version);
-	
 		} catch (error) {
-			// Log the error for debugging
-			console.error('Error in _getNSPversion:', error);
-	
-			// Display an error message to the user
-			vscode.window.showErrorMessage(`Failed to retrieve NSP version: ${error.message}`);
+			vscode.window.showErrorMessage(`Failed to retrieve NSP version: ${error}`);
 		}
 	}
 	
