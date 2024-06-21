@@ -30,7 +30,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	// get the extension id of another extension
 	const imExtension = vscode.extensions.getExtension('Nokia.nokia-intent-manager');	
 	await new Promise(resolve => setTimeout(resolve, 500)); // sleep for 0.5 second so IM loads first:
-	if (imExtension.isActive) { // if the IM extension is active
+	if (imExtension?.isActive) { // if the IM extension is active
 		statusbar_server.hide();
 	} else {
 		statusbar_server.show();
@@ -57,12 +57,12 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		header.ip = server;
 	}
 	if (imConfig.get("standardPort") == true) {
-		wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
+		wfmConfig.update("standardPort", true, vscode.ConfigurationTarget.Workspace);
 		wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
 	}
 
 	if (imConfig.get("standardPort") == false) {
-		wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
+		wfmConfig.update("standardPort", false, vscode.ConfigurationTarget.Workspace);
 	}
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
@@ -150,11 +150,11 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 				header.ip = server;
 			}
 			if (imConfig.get("standardPort") == true) {
-				wfmConfig.update("standarPort", true, vscode.ConfigurationTarget.Workspace);
+				wfmConfig.update("standardPort", true, vscode.ConfigurationTarget.Workspace);
 				wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
 			}
 			if (imConfig.get("standardPort") == false) {
-				wfmConfig.update("standarPort", false, vscode.ConfigurationTarget.Workspace);
+				wfmConfig.update("standardPort", false, vscode.ConfigurationTarget.Workspace);
 			}
 			wfmProvider.updateSettings();
 		}
