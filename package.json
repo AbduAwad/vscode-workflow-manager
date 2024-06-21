@@ -139,7 +139,12 @@
           "when": "resourceLangId == yaml && resource =~ /^(?!.*wfm:\\/actions\\/).*$/",
           "command": "nokia-wfm.execute",
           "group": "navigation"
-        }
+        }, 
+        {
+          "when": "resource =~ /^wfm:\\/[a-z][a-z0-9_\\-]*_v\\d+\\/(templates|actions|workflows)\\/[^/]+$/",
+          "command": "nokia-wfm.logs",
+          "group": "navigation"
+        }        
       ]
     },
     "commands": [
@@ -195,6 +200,12 @@
         "category": "WFM",
         "title": "Open in Browser",
         "icon": "$(home)"
+      },
+      {
+        "command": "nokia-wfm.logs",
+        "category": "WFM",
+        "title": "Server Logs",
+        "icon": "$(debug)"
       }
     ]
   },

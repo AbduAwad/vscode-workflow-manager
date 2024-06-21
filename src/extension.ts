@@ -83,7 +83,10 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	wfmProvider.extContext=context;
 	
 	// // PUBLISHING COMMANDS
-	// // --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
+
+	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.logs',  async (...args) => wfmProvider.logs(args)));
+	
+	// --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.validate', async () => {
 		wfmProvider.validate(); // validate an action, workflow, or template.
 	}));

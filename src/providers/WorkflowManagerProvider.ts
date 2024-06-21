@@ -67,6 +67,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	workflow_documentations: {[name: string]: FileStat}; // DS for workflow_documentations
 	workflow_views: {[name: string]: FileStat}; // DS for workflow_views
 	workflow_folders: {[name: string]: FileStat}; // DS for workflow_folders
+	pluginLogs: vscode.LogOutputChannel;
 
 	public onDidChangeFileDecorations: vscode.Event<vscode.Uri | vscode.Uri[] | undefined>;
     private _eventEmiter: vscode.EventEmitter<vscode.Uri | vscode.Uri[]>;
@@ -103,6 +104,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		this.workflow_views = {};
 		this.workflow_folders = {};
 
+		this.pluginLogs = vscode.window.createOutputChannel('nsp-wfm-plugin-logs', {log: true});
+
 		// used for FileDecorator        
 		this._eventEmiter = new vscode.EventEmitter(); // Event emitter for file decorations
         this.onDidChangeFileDecorations = this._eventEmiter.event;
@@ -111,19 +114,18 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	}
 
 	dispose() {
-		console.log("disposing WorkflowManagerProvider()");
 		this._revokeAuthToken();
+		this.pluginLogs.dispose();
 	}
 
 	// --- private methods -----------------------------------
-
 	/**
 	* Retrieves auth-token from NSP. Implementation uses promises to ensure that only
 	* one token is used at any given moment of time. The token will automatically be
 	* revoked after 10min.
 	*/	
 	private async _getAuthToken(): Promise<void> {
-        console.log("executing _getAuthToken()");
+        this.pluginLogs.info("executing getAuthToken()");
 
         if (this.authToken) {
             if (!(await this.authToken)) {
@@ -137,7 +139,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
         if (!this.authToken) {
             this.authToken = new Promise((resolve, reject) => {
 
-                console.log("No valid auth-token; getting a new one...");
+                this.pluginLogs.warn("No valid auth-token; Getting a new one...");
                 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
                 const fetch = require('node-fetch');
@@ -156,7 +158,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
                     body: '{"grant_type": "client_credentials"}',
                     signal: timeout.signal
                 }).then(response => {
-                    console.log("POST", url, response.status);
+                    this.pluginLogs.info("POST", url, response.status);
 					if (!response.ok) {
 						vscode.window.showErrorMessage("WFM: NSP Auth Error");
                         reject("Authentication Error!");
@@ -164,16 +166,17 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
                     }
                     return response.json();
                 }).then(json => {
+					this.pluginLogs.info("new authToken: ", json.access_token);
                     resolve(json.access_token); // resolve promise with auth-token
                     setTimeout(() => this._revokeAuthToken(), 600000); // automatically revoke token after 10min
 				}).catch(error => {
-                    console.error(error.message);
-					vscode.window.showErrorMessage("WFM: NSP is not reachable");
+					this.pluginLogs.error("Getting authToken failed with", error.message);
+					vscode.window.showWarningMessage("WFM: NSP is not reachable");
                     resolve(undefined);
                 });
             });
         }
-		console.log('completed _getAuthToken()');
+		this.pluginLogs.info("completed _getAuthToken()");
     }
 
 	/**
@@ -181,10 +184,10 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 * Method is called automatically after 10min.
 	 */	
 	private async _revokeAuthToken(): Promise<void> {
-		console.log('executing _revokeAuthToken()');
+		this.pluginLogs.info("executing _revokeAuthToken()");
 		if (this.authToken) {
 			const token = await this.authToken;
-			console.log("_revokeAuthToken("+token+")");
+			this.pluginLogs.debug("_revokeAuthToken("+token+")");
 			this.authToken = undefined;
 
 			const fetch = require('node-fetch');
@@ -200,7 +203,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				body: 'token='+token+'&token_type_hint=token'
 			})
 			.then(response => {
-				console.log("POST", url, response.status);
+				this.pluginLogs.info("POST", url, response.status);
 			});
 		}
 	}
@@ -212,7 +215,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 * @param {any} options HTTP method, header, body
 	*/	
 	private async _callNSP(url:string, options:any): Promise<void>{
-		console.log("executing _callNSP(" + url +")");
+		this.pluginLogs.info("executing _callNSP(" + url +")");
 		const fetch = require('node-fetch');
 		const timeout = new AbortController();
         setTimeout(() => timeout.abort(), this.timeout);
@@ -2562,6 +2565,125 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer');
 	}
 	
+		/**
+	 * Get server logs for the intent script execution from OpenSearch. Filtering is applied
+	 * based on intent-type(s) or intent instances being selected.
+	 * 
+	 * Collection will be limited to cover the last 10min only respectively 1000 log entries.
+	 * 
+	 * Whenever there is a pause between two adjacent log entries for 30sec or more, an empty
+	 * line will be added. This is to provide better separation between disjoint intent
+	 * operations.
+	 * 
+	 * Logs are reordered (sorted) by the timestamp generated by the IBN engine. In some cases
+	 * adjacent log entries contain the same timestamp, while displaying logs in the correct
+	 * order can not be granted.
+	 * 
+	 * If no intent-type/intent URI is provided, all execution logs from last 10 minutes
+	 * are queried.
+	 * 
+	 * @param {any[]} args context used to issue command
+	 */	
+
+	public async logs(args:any[]): Promise<void> {
+		this.pluginLogs.debug("logs()");
+		// update implementation:
+
+		// const query : {[key: string]: any} = {"bool": {"must": [
+		// 	{"range": {"@datetime": {"gte": "now-10m"}}},
+		// 	{"match_phrase": {"log": "\"category\":\"com.nokia.fnms.controller.ibn.impl.ScriptedEngine\""}},
+		// 	{"bool": {"should": []}}
+		// ]}};
+
+		// const uriList:vscode.Uri[] = this._getUriList(args);
+		// for (const entry of uriList) {
+		// 	const parts = entry.toString().split('/').map(decodeURIComponent);
+
+		// 	if (parts[0]==='im:') {
+		// 		this.pluginLogs.info("get logs for "+entry.toString());
+		// 		const intent_type_folder = parts[1];
+		// 		const intent_type_version = intent_type_folder.split('_v')[1];
+		// 		const intent_type = intent_type_folder.split('_v')[0];
+	
+		// 		const qentry = {"bool": {"must": [
+		// 			{"match_phrase": {"log": "\"intent_type\":\""+intent_type+"\""}},
+		// 			{"match_phrase": {"log": "\"intent_type_version\":\""+intent_type_version+"\""}}
+		// 		]}};
+
+		// 		if (parts.length===4 && parts[2]==="intents")
+		// 			qentry.bool.must.push({"match_phrase": {"log": "\"target\":\""+decodeURIComponent(parts[3].slice(0,-5))+"\""}});
+
+		// 		query.bool.must.at(2).bool.should.push(qentry);
+		// 	}
+		// }
+
+		// // get auth-token
+		// await this._getAuthToken();
+		// const token = await this.authToken;
+		// if (!token) {
+		// 	throw vscode.FileSystemError.Unavailable('NSP is not reachable');
+		// }
+
+		// const url = "/logviewer/api/console/proxy?path=nsp-mdt-logs-*/_search&method=GET";
+		// const body = {"query": query, "sort": {"@datetime": "desc"}, "size": 1000};
+		
+		// let osdver = "2.6.0";
+		// if (this._fromRelease(23,11)) osdver="2.10.0";
+
+		// const response: any = await this._callNSP(url, {
+		// 	method: "POST",
+		// 	headers: {
+		// 		"Content-Type":  "application/json",
+		// 		"Cache-Control": "no-cache",
+		// 		"Osd-Version":   osdver,
+		// 		"Authorization": "Bearer " + token
+		// 	},
+		// 	body: JSON.stringify(body)
+		// });
+
+		// if (!response)
+		// 	throw vscode.FileSystemError.Unavailable("Lost connection to NSP");
+		// if (!response.ok)
+		// 	this._raiseRestconfError("Getting logs failed!", await response.json(), true);
+		// const json: any = await response.json();
+
+		// const data : {[key: string]: any}[] = json["hits"]["hits"];
+		// if (data.length === 0 ) {
+		// 	vscode.window.showWarningMessage("No intent operation logs for the last 10 minutes");
+		// } else {
+		// 	const logs : Array<any> = [];
+		// 	for (const entry of data) {
+		// 		logs.push(JSON.parse(entry['_source'].log));
+		// 	}
+		// 	logs.sort((a,b) => a['date']-b['date']);
+
+		// 	this.serverLogs.clear();
+		// 	this.serverLogs.show(true);
+
+		// 	let pdate = logs[0]['date'];
+		// 	for (const logentry of logs) {
+		// 		const timestamp = new Date(logentry['date']);
+		// 		const level = logentry['level'];
+		// 		const target = logentry['target'];
+		// 		const intent_type = logentry['intent_type'];
+		// 		const intent_type_version = logentry['intent_type_version'];
+		// 		const intent_type_folder = intent_type+"_v"+intent_type_version;
+
+		// 		let message = logentry['message'].slice(logentry['message'].indexOf("]")+1).trim();
+				
+		// 		// insert empty line, if more than 30sec between two log entries
+		// 		if (logentry['date'] > pdate+30000)
+		// 			this.serverLogs.appendLine("");
+
+		// 		// avoid duplication of logging intent-type/version/target (from sf-logger.js)
+		// 		message = message.replace("["+intent_type+"]", "").replace("["+intent_type_version+"]", "").replace("["+target+"]", "").trim();
+
+		// 		this.serverLogs.appendLine(timestamp.toISOString().slice(-13) + " " + level+ "\t[" + intent_type_folder + ' ' + target + "] " + message);
+		// 		pdate = logentry['date'];
+		// 	}
+		// }
+	}
+
 	// vscode.FileSystemProvider implementation ----------------
 	
 	/**
