@@ -13,42 +13,35 @@ import * as fs from 'fs'; // import filesystem
 import { WorkflowManagerProvider, CodelensProvider } from './providers';
 
 export async function activate(context: vscode.ExtensionContext) { // Ran upon extension activation:
-
 	let imConfig = await vscode.workspace.getConfiguration('intentManager');
 	let wfmConfig = await vscode.workspace.getConfiguration('workflowManager');
 
-	// create statusbar item: 
-	const statusbar_server = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
-	statusbar_server.command = 'nokia-wfm.setServer';
-	statusbar_server.tooltip = 'Set NSP Server';
-	statusbar_server.text = 'NSP: ' + wfmConfig.get("activeServer") ?? 'Select Server';
+	const nspServerStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
+	nspServerStatusBar.command = 'nokia-wfm.setServer';
+	nspServerStatusBar.tooltip = 'Set NSP Server';
+	nspServerStatusBar.text = 'NSP: ' + wfmConfig.get("activeServer") ?? 'Select Server';
 
 	let header = new CodelensProvider(wfmConfig.get("activeServer")); // create a new header for the codelens
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'jinja', scheme: 'wfm'}, header));
 
-	// get the extension id of another extension
 	const imExtension = vscode.extensions.getExtension('Nokia.nokia-intent-manager');	
 	await new Promise(resolve => setTimeout(resolve, 500)); // sleep for 0.5 second so IM loads first:
 	if (imExtension?.isActive) { // if the IM extension is active
-		statusbar_server.hide();
+		nspServerStatusBar.hide();
 	} else {
-		statusbar_server.show();
+		nspServerStatusBar.show();
 	}
 
 	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
 		let servers = imConfig.get("NSPS") ?? [];
-		console.log('Updating Workflow Manager NSP Servers:', servers);
 		wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
-		console.log('Workflow Manager NSP Servers:', wfmConfig.get("NSPS"));
 	}
 
 	if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 		let server:string = imConfig.get("activeServer"); // update the active server:
-		console.log('Updating Workflow Manager Active Server:', server);
 		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
-		console.log('Workflow Manager Active Server:', wfmConfig.get("activeServer"));
-		statusbar_server.text = 'NSP: ' + server; 
+		nspServerStatusBar.text = 'NSP: ' + server; 
 		context.subscriptions.forEach((element) => {
 			if (element instanceof CodelensProvider) {
 				element.dispose();
@@ -60,7 +53,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		wfmConfig.update("standardPort", true, vscode.ConfigurationTarget.Workspace);
 		wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
 	}
-
 	if (imConfig.get("standardPort") == false) {
 		wfmConfig.update("standardPort", false, vscode.ConfigurationTarget.Workspace);
 	}
@@ -75,15 +67,12 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const localpath : string = config.get("localStorage.folder") ?? "";
 	const fileIgnore : Array<string> = config.get("ignoreTags") ?? [];
 	const wfmProvider = new WorkflowManagerProvider(server, username, secretStorage, port, localsave, localpath, timeout, fileIgnore);
-	
-	let servers = config.get("NSPS");
 
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
 	context.subscriptions.push(vscode.window.registerFileDecorationProvider(wfmProvider));
 	wfmProvider.extContext=context;
 	
-	// // PUBLISHING COMMANDS
-
+	// Publish Commands to extension context subscription:
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.logs',  async (...args) => wfmProvider.logs(args)));
 	
 	// --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
@@ -124,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	// --- Set Workflow Manager NSP Server when the user clicks the server button
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.setServer', async () => {
 		let updatedConfig = vscode.workspace.getConfiguration('workflowManager');
-		wfmProvider.setServer(updatedConfig, statusbar_server, secretStorage); // set Active Workflow Manager NSP Server
+		wfmProvider.setServer(updatedConfig, nspServerStatusBar, secretStorage); // set Active Workflow Manager NSP Server
 	}));
 
 	// --- subscription for changes in the configuration
@@ -143,7 +132,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 			if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 				let server:string = imConfig.get("activeServer"); // update the active server:
 				wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
-				statusbar_server.text = 'NSP: ' + server;
+				nspServerStatusBar.text = 'NSP: ' + server;
 				
 				context.subscriptions.forEach((element) => { // remove the old header 
 					if (element instanceof CodelensProvider) {
@@ -223,11 +212,9 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	fileAssociations["/workflows/*"] = "yaml"; // apply YAML language to all wfm:/workflows/* files
 	vscode.workspace.getConfiguration('files').update('associations', fileAssociations);
 
-	// Add Workflow Manager folder to workspace
 	vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: vscode.Uri.parse('wfm:/'), name: "Workflow Manager" });
 }
 
 export function deactivate(context: vscode.ExtensionContext) { // function from its main module to perform cleanup tasks on VS Code shutdow
- 	console.log('Deactivating Nokia Workflow Manager Extension');
-	// IMPLEMENT THIS: To cleanup settings and resources especially things liek statusbar etc...
+	return;
 }
