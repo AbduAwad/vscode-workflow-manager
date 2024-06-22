@@ -164,7 +164,7 @@ ____
     <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/resetCredentials.png" width="550" alt="Option to reset credentials">
 </p>
 
-## Updates: NOKIA_WFM and NOKIA_IM Extension NSP Connection
+### NOKIA_WFM and NOKIA_IM Extension Synchronized NSP Connection
 - Both the WFM and IM extensions connect to the same NSP on a given VS Code workspace (window).
 
 <p align="center">
@@ -191,3 +191,17 @@ ____
     <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/WFM_PORT.png" width="550" alt="Port selection for NSP connection">
 </p>
 
+### Logging to VsCode Output Channel
+
+* Logging for workflow manager operations using output channels of vscode. Logs are cleaned up and use the correct severity.
+* Moved plugin logging to log output channel of vscode (not console.log/warn/error anymore).
+  * Setup loglevel as desired from UI.
+  * Logging is available in normal production environment (no need to debug the plugin).
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/loggingSelection.png" width="550">
+</p>
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/logging.png" width="550">
+</p>

@@ -4,19 +4,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
 */
 
-import { config } from 'process';
 import * as vscode from 'vscode';
 
 const DECORATION_SIGNED: vscode.FileDecoration =    new vscode.FileDecoration(
-	'🔒',
-	'Signed',
-	new vscode.ThemeColor('list.deemphasizedForeground')
+	'🔒', 'Signed', new vscode.ThemeColor('list.deemphasizedForeground')
 );
 
 const DECORATION_UNSIGNED: vscode.FileDecoration =    new vscode.FileDecoration(
-	'',
-	'Unsigned',
-	new vscode.ThemeColor('list.highlightForeground')
+	'', 'Unsigned', new vscode.ThemeColor('list.highlightForeground')
 );
 
 export class FileStat implements vscode.FileStat { // FileStat is a class that contains the file status
@@ -84,7 +79,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	 * @param {fileIgnore} fileIgnore hide intent-types with provided labels to keep filesystem clean
 	 */	
 
-	constructor (nspAddr: string, username: string, secretStorage: vscode.SecretStorage, port: string, localsave: boolean, localpath: string, timeout: number, fileIgnore: Array<string>) {
+	constructor (secretStorage: vscode.SecretStorage, localsave: boolean, localpath: string, timeout: number, fileIgnore: Array<string>) {
+		
 		const config = vscode.workspace.getConfiguration('workflowManager');
 		this.nspAddr = config.get("activeServer") ?? "localhost";
 		this.username = "";
