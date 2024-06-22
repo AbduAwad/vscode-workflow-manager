@@ -199,9 +199,9 @@ ____
   * Logging is available in normal production environment (no need to debug the plugin).
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/loggingSelection.png" width="550">
+    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/loggingSelection.png" width="850">
 </p>
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/logging.png" width="550">
+    <img src="https://raw.githubusercontent.com/AbduAwad/vscode-workflow-manager/main/media/logging.png" width="850">
 </p>
