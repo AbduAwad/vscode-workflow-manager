@@ -122,7 +122,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	*/	
 	private async _getAuthToken(): Promise<void> {
         this.pluginLogs.info("executing getAuthToken()");
-
+		
         if (this.authToken) {
             if (!(await this.authToken)) {
                 this.authToken = undefined;
@@ -184,11 +184,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		if (this.authToken) {
 			const token = await this.authToken;
 			this.pluginLogs.debug("_revokeAuthToken("+token+")");
-			this.authToken = undefined;
-
 			const fetch = require('node-fetch');
 			const base64 = require('base-64');
-		
 			const url = "https://"+this.nspAddr+"/rest-gateway/rest/api/v1/auth/revocation";
 			fetch(url, {
 				method: 'POST',
@@ -201,7 +198,9 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			.then(response => {
 				this.pluginLogs.info("POST", url, response.status);
 			});
-		}
+		} 
+		this.authToken = undefined;
+		this.pluginLogs.info("completed _revokeAuthToken()");
 	}
 
 	/**
@@ -2402,7 +2401,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 		if (nsp !== this.nspAddr || port !== this.port) {
 			this.pluginLogs.warn("Disconnecting from NSP", this.nspAddr);
-			this._revokeAuthToken();
+			await this._revokeAuthToken();
 			this.nspAddr = nsp;
 			this.port = port;
 			await this._getNSPversion(); // get the version of the NSP
