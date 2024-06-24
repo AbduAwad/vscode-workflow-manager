@@ -19,7 +19,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	const nspServerStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
 	nspServerStatusBar.command = 'nokia-wfm.setServer';
 	nspServerStatusBar.tooltip = 'Set NSP Server';
-	nspServerStatusBar.text = 'NSP: ' + wfmConfig.get("activeServer") ?? 'Select Server';
+	nspServerStatusBar.text = 'NSP: ' + wfmConfig.get("activeServer");
 
 	let header = new CodelensProvider(wfmConfig.get("activeServer")); // create a new header for the codelens
 	context.subscriptions.push(vscode.languages.registerCodeLensProvider({language: 'yaml', scheme: 'wfm'}, header));
@@ -33,28 +33,29 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		nspServerStatusBar.show();
 	}
 
-	if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
-		let servers = imConfig.get("NSPS") ?? [];
-		wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
-	}
-
-	if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
-		let server:string = imConfig.get("activeServer"); // update the active server:
-		wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
-		nspServerStatusBar.text = 'NSP: ' + server; 
-		context.subscriptions.forEach((element) => {
-			if (element instanceof CodelensProvider) {
-				element.dispose();
-			}
-		});
-		header.ip = server;
-	}
-	if (imConfig.get("standardPort") == true) {
-		wfmConfig.update("standardPort", true, vscode.ConfigurationTarget.Workspace);
-		wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
-	}
-	if (imConfig.get("standardPort") == false) {
-		wfmConfig.update("standardPort", false, vscode.ConfigurationTarget.Workspace);
+	if (imConfig.get("activeServer") !== undefined) {
+		if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
+			let servers = imConfig.get("NSPS") ?? [];
+			wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
+		}
+		if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
+			let server:string = imConfig.get("activeServer"); // update the active server:
+			wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
+			nspServerStatusBar.text = 'NSP: ' + server; 
+			context.subscriptions.forEach((element) => {
+				if (element instanceof CodelensProvider) {
+					element.dispose();
+				}
+			});
+			header.ip = server;
+		}
+		if (imConfig.get("standardPort") == true) {
+			wfmConfig.update("standardPort", true, vscode.ConfigurationTarget.Workspace);
+			wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
+		}
+		if (imConfig.get("standardPort") == false) {
+			wfmConfig.update("standardPort", false, vscode.ConfigurationTarget.Workspace);
+		}
 	}
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
@@ -71,10 +72,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	context.subscriptions.push(vscode.workspace.registerFileSystemProvider('wfm', wfmProvider, { isCaseSensitive: true }));
 	context.subscriptions.push(vscode.window.registerFileDecorationProvider(wfmProvider));
 	wfmProvider.extContext=context;
-	
-	// Publish Commands to extension context subscription:
-	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.logs',  async (...args) => wfmProvider.logs(args)));
-	
+		
 	// --- A handler for the 'nokia-wfm.validate' command when the user clicks the checkmark
 	context.subscriptions.push(vscode.commands.registerCommand('nokia-wfm.validate', async () => {
 		wfmProvider.validate(); // validate an action, workflow, or template.
@@ -213,8 +211,4 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	vscode.workspace.getConfiguration('files').update('associations', fileAssociations);
 
 	vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0, null, { uri: vscode.Uri.parse('wfm:/'), name: "Workflow Manager" });
-}
-
-export function deactivate(context: vscode.ExtensionContext) { // function from its main module to perform cleanup tasks on VS Code shutdow
-	return;
 }
