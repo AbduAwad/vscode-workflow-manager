@@ -122,7 +122,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	*/	
 	private async _getAuthToken(): Promise<void> {
         this.pluginLogs.info("executing getAuthToken()");
-		
+		this.pluginLogs.info("this.authToken: ", this.authToken);
         if (this.authToken) {
             if (!(await this.authToken)) {
                 this.authToken = undefined;
@@ -2405,9 +2405,8 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		this.pluginLogs.info("NSP: " + this.nspAddr + " Port: " + this.port);
 		if (nsp !== this.nspAddr || port !== this.port) {
 			this.pluginLogs.warn("Disconnecting from NSP", this.nspAddr);
-			if (this.authToken) { // only revoke the authentication token if there is an authentication token
-				await this._revokeAuthToken();
-			}
+			this.authToken = undefined;
+			await this._revokeAuthToken();
 			this.pluginLogs.info("Revoked auth token");
 			this.nspAddr = nsp;
 			this.port = port;
