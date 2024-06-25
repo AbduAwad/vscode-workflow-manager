@@ -34,10 +34,35 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 	}
 
 	if (imConfig.get("activeServer") !== undefined) {
-		if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
-			let servers = imConfig.get("NSPS") ?? [];
-			wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
+		let imNSPS:any = imConfig.get("NSPS") ?? [];
+		let wfmNSPS:any = wfmConfig.get("NSPS") ?? [];
+		if (imNSPS.length > wfmNSPS.length) {
+			for (let i = wfmNSPS.length; i < imNSPS.length; i++) {
+				wfmNSPS.push(imNSPS[i]);
+			}
 		}
+		if (wfmNSPS.length > imNSPS.length) {
+			for (let i = imNSPS.length; i < wfmNSPS.length; i++) {
+				imNSPS.push(wfmNSPS[i]);
+			}
+		}
+		for (let i = 0; i < wfmNSPS.length; i++) {
+			let imNSP = imNSPS[i];
+			let wfmNSP = wfmNSPS[i];
+			if (imNSP !== undefined && wfmNSP !== undefined) {
+				if (imNSP.ip !== wfmNSP.ip) {
+					wfmNSPS[i].ip = imNSP.ip;
+				}
+				if (imNSP.id !== wfmNSP.id) {
+					wfmNSPS[i].id = imNSP.id;
+				}
+				if (imNSP.port == "") {
+					wfmNSPS[i].port = "";
+				}
+			}
+		}	
+		wfmConfig.update("NSPS", wfmNSPS, vscode.ConfigurationTarget.Global);
+
 		if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 			let server:string = imConfig.get("activeServer"); // update the active server:
 			wfmConfig.update("activeServer", server, vscode.ConfigurationTarget.Workspace);
@@ -49,20 +74,11 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 			});
 			header.ip = server;
 		}
-		if (imConfig.get("standardPort") == true) {
-			wfmConfig.update("standardPort", true, vscode.ConfigurationTarget.Workspace);
-			wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
-		}
-		if (imConfig.get("standardPort") == false) {
-			wfmConfig.update("standardPort", false, vscode.ConfigurationTarget.Workspace);
-		}
 	}
 
 	const secretStorage: vscode.SecretStorage = context.secrets;
 	const config = vscode.workspace.getConfiguration('workflowManager');
 	const server : string   = config.get("activeServer")   ?? "localhost"; // active server is the first server in the NSP server list.
-	const username : string = config.get("username") ?? "admin";
-	const port : string = config.get("port");
 	const timeout : number = config.get("timeout") ?? 20000;
 	const localsave : boolean = config.get("localStorage.enable") ?? false;
 	const localpath : string = config.get("localStorage.folder") ?? "";
@@ -123,9 +139,36 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		if (e.affectsConfiguration('intentManager')) { // update workflow manager NSP list: 
 			const imConfig = vscode.workspace.getConfiguration('intentManager');
 			let wfmConfig = vscode.workspace.getConfiguration('workflowManager');
-			if (imConfig.get("NSPS") != wfmConfig.get("NSPS")) {
-				let servers = imConfig.get("NSPS") ?? [];
-				wfmConfig.update("NSPS", servers, vscode.ConfigurationTarget.Global);
+
+			if (e.affectsConfiguration('intentManager.NSPS')) {
+				let imNSPS:any = imConfig.get("NSPS") ?? [];
+				let wfmNSPS:any = wfmConfig.get("NSPS") ?? [];
+				if (imNSPS.length > wfmNSPS.length) {
+					for (let i = wfmNSPS.length; i < imNSPS.length; i++) {
+						wfmNSPS.push(imNSPS[i]);
+					}
+				}
+				if (wfmNSPS.length > imNSPS.length) {
+					for (let i = imNSPS.length; i < wfmNSPS.length; i++) {
+						imNSPS.push(wfmNSPS[i]);
+					}
+				}
+				for (let i = 0; i < wfmNSPS.length; i++) {
+					let imNSP = imNSPS[i];
+					let wfmNSP = wfmNSPS[i];
+					if (imNSP !== undefined && wfmNSP !== undefined) {
+						if (imNSP.ip !== wfmNSP.ip) {
+							wfmNSPS[i].ip = imNSP.ip;
+						}
+						if (imNSP.id !== wfmNSP.id) {
+							wfmNSPS[i].id = imNSP.id;
+						}
+						if (imNSP.port == "") {
+							wfmNSPS[i].port = "";
+						}
+					}
+				}	
+				wfmConfig.update("NSPS", wfmNSPS, vscode.ConfigurationTarget.Global);
 			}
 			if (imConfig.get("activeServer") != wfmConfig.get("activeServer")) {
 				let server:string = imConfig.get("activeServer"); // update the active server:
@@ -138,13 +181,6 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 					}
 				});
 				header.ip = server;
-			}
-			if (imConfig.get("standardPort") == true) {
-				wfmConfig.update("standardPort", true, vscode.ConfigurationTarget.Workspace);
-				wfmConfig.update("port", "", vscode.ConfigurationTarget.Workspace);
-			}
-			if (imConfig.get("standardPort") == false) {
-				wfmConfig.update("standardPort", false, vscode.ConfigurationTarget.Workspace);
 			}
 			wfmProvider.updateSettings();
 		}
