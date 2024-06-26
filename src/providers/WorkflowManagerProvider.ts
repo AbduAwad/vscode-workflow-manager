@@ -2227,7 +2227,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		const quickPick = vscode.window.createQuickPick();
 		quickPick.placeholder = 'Select NSP Server...';
 		quickPick.items = servers.map(server => ({ label: server , iconPath: new vscode.ThemeIcon('vm-connect')}));
-		quickPick.buttons = [ { iconPath: new vscode.ThemeIcon('gear'), tooltip: 'Reset Credentials for an NSP...'}, { iconPath: new vscode.ThemeIcon('add'), tooltip: 'Add Server'}, { iconPath: new vscode.ThemeIcon('remove'), tooltip: 'Remove Server'}];
+		quickPick.buttons = [ { iconPath: new vscode.ThemeIcon('gear'), tooltip: 'Reset Connection Details for an NSP...'}, { iconPath: new vscode.ThemeIcon('add'), tooltip: 'Add Server'}, { iconPath: new vscode.ThemeIcon('remove'), tooltip: 'Remove Server'}];
 		quickPick.show();
 		await quickPick.onDidTriggerButton(async button => { // add a server
 			if ((button.iconPath as vscode.ThemeIcon).id === 'add') {
@@ -2288,6 +2288,21 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						}
 						const usernameInput: string = await vscode.window.showInputBox({ prompt: 'Enter Username...' }) ?? '';
 						const passwordInput: string = await vscode.window.showInputBox({ password: true,  prompt: 'Enter Password...' }) ?? '';
+						let portConfig = vscode.workspace.getConfiguration('workflowManager');
+						let serverList:any = portConfig.get("NSPS");
+						let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
+						if (is_standard_port == 'Yes') {
+							for (let i = 0; i < serverList.length; i++) {
+								if (serverList[i].ip === ip) {
+									serverList[i].port = '443';
+									break;
+								}
+							}
+							config.update('NSPS', serverList, vscode.ConfigurationTarget.Global);
+						} else {
+							await this.updatePort();
+						}
+						
 						if (await this.validateNSPCredentials(ip, usernameInput, passwordInput)) {
 							await secretStorage.delete(ip + '_username');
 							await secretStorage.delete(ip + '_password');
@@ -2295,7 +2310,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 							await secretStorage.store(ip + '_password', passwordInput);
 							vscode.window.showInformationMessage('Success! Credentials for ' + ip + ' updated');
 						} else {
-							vscode.window.showErrorMessage('Invalid Credentials');
+							vscode.window.showErrorMessage('Invalid User/Pass Credentials');
 						}
 					}
 				});
