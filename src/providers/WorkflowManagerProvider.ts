@@ -2218,7 +2218,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	*/
 	async setServer(config: vscode.WorkspaceConfiguration, statusbar_server: vscode.StatusBarItem, secretStorage: vscode.SecretStorage): Promise<void> {
 		this.pluginLogs.info("Executing setServer()");
-
 		let updatedServers : Array<{id: string, ip: string}> = config.get("NSPS") ?? [];
 		let servers = []
 		updatedServers.forEach(function (server) {
@@ -2325,14 +2324,14 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						if (serverList[i].port != undefined) {
 							isPortAssociated = true
 							portConfig.update('port', serverList[i].port, vscode.ConfigurationTarget.Workspace);
+							break;
 						}
-						break;
+						
 					}
 				}
 				if (!isPortAssociated) {
 					let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
 					if (is_standard_port == 'Yes') {
-						
 						for (let i = 0; i < serverList.length; i++) {
 							if (serverList[i].ip === ip) {
 								serverList[i].port = '';
@@ -2343,6 +2342,13 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						config.update('port', '', vscode.ConfigurationTarget.Workspace);
 						if (imConfig.get('port') != undefined) {
 							imConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
+							let serverList:any = imConfig.get("NSPS");
+							for (let i = 0; i < serverList.length; i++) {
+								if (serverList[i].ip === ip) {
+									serverList[i].port = '';
+									break;
+								}
+							}
 						}
 					} else {	
 						await this.updatePort();	
@@ -2427,11 +2433,11 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	}
 
 	public async updateIMPort() {
-		
+
 		const imConfig = vscode.workspace.getConfiguration('intentManager');
 
 		if (imConfig) {
-			let imPort = await vscode.window.showInputBox({ prompt: 'Enter Port for NSP Workflow Manager...' });
+			let imPort = await vscode.window.showInputBox({ prompt: 'Enter Port for NSP Intent Manager...' });
 			imConfig.update('port', imPort, vscode.ConfigurationTarget.Workspace);
 			
 			let serverList:any = imConfig.get("NSPS");
@@ -2448,7 +2454,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	public async updatePort() {
 		await this.updateWFMPort();
 		await this.updateIMPort();
-		await this.updateSettings();
 	}
 
 	/**
@@ -2457,14 +2462,21 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 	public async updateSettings() {
 
 		this.pluginLogs.info("Executing updateSettings()");
-
+		this.pluginLogs.info("Updating WorkflowManagerProvider after configuration change");
 		const config = vscode.workspace.getConfiguration('workflowManager');
 		this.timeout = config.get('timeout') ?? 90000; // default 3min
 		this.fileIgnore = config.get('ignoreTags') ?? [];
 		this.localsave = config.get("localStorage.enable") ?? false;
 		this.localpath = config.get("localStorage.folder") ?? "";
 		const nsp:string = config.get('activeServer') ?? 'localhost';
-		const port:string = config.get('port');
+	
+		let port = ""
+		let serverList:any = config.get("NSPS");
+		for (let i = 0; i < serverList.length; i++) {
+			if (serverList[i].ip === nsp) {
+				port = serverList[i].port;
+			}
+		}
 
 		if (nsp !== this.nspAddr || port !== this.port) {
 			await this._revokeAuthToken();
