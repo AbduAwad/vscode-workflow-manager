@@ -45,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		imNSPS.forEach(imItem => {
 			let wfmItem = wfmNSPSMap.get(imItem.id);
 			if (wfmItem) {
-				if (imItem.port === "") {
+				if (imItem.port === "443") {
 					wfmItem.port = imItem.port;
 				}
 			} else {
@@ -147,7 +147,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 					imNSPS.forEach(imItem => {
 						let wfmItem = wfmNSPSMap.get(imItem.id);
 						if (wfmItem) {
-							if (imItem.port === "") {
+							if (imItem.port === "443") {
 								wfmItem.port = imItem.port;
 							}
 						} else {

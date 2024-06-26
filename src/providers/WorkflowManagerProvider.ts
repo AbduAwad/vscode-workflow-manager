@@ -86,7 +86,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		this.username = "";
 		this.password = "";
 		this.authToken = undefined;
-		this.port = config.get("port");
+		this.port = "";
 		this.timeout = timeout;
 		this.fileIgnore = fileIgnore;
 		this.secretStorage = secretStorage;
@@ -2316,17 +2316,14 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
 				config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 				const portConfig = vscode.workspace.getConfiguration('workflowManager');
-				const imConfig = vscode.workspace.getConfiguration('intentManager');
 				let serverList:any = portConfig.get("NSPS");
 				let isPortAssociated = false;
 				for (let i = 0; i < serverList.length; i++) {
 					if (serverList[i].ip === ip) {
 						if (serverList[i].port != undefined) {
 							isPortAssociated = true
-							portConfig.update('port', serverList[i].port, vscode.ConfigurationTarget.Workspace);
 							break;
 						}
-						
 					}
 				}
 				if (!isPortAssociated) {
@@ -2334,22 +2331,11 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					if (is_standard_port == 'Yes') {
 						for (let i = 0; i < serverList.length; i++) {
 							if (serverList[i].ip === ip) {
-								serverList[i].port = '';
+								serverList[i].port = '443';
 								break;
 							}
 						}
 						config.update('NSPS', serverList, vscode.ConfigurationTarget.Global);
-						config.update('port', '', vscode.ConfigurationTarget.Workspace);
-						if (imConfig.get('port') != undefined) {
-							imConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
-							let serverList:any = imConfig.get("NSPS");
-							for (let i = 0; i < serverList.length; i++) {
-								if (serverList[i].ip === ip) {
-									serverList[i].port = '';
-									break;
-								}
-							}
-						}
 					} else {	
 						await this.updatePort();	
 					}
@@ -2374,7 +2360,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						if (serverList[i].ip === ip) {
 							if (serverList[i].port != undefined) {
 								isPortAssociated = true
-								portConfig.update('port', serverList[i].port, vscode.ConfigurationTarget.Workspace);
 							}
 							break;
 						}
@@ -2383,23 +2368,13 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					if (!isPortAssociated) {
 						let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
 						if (is_standard_port == 'Yes') {
-							portConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
 							let serverList:any = portConfig.get("NSPS");
 							for (let i = 0; i < serverList.length; i++) {
 								if (serverList[i].ip === ip) {
-									serverList[i].port = '';
+									serverList[i].port = '443';
 								}
 							}
 							portConfig.update('NSPS', serverList, vscode.ConfigurationTarget.Global);
-							if (imConfig.get('port') != undefined) {
-								imConfig.update('port', '', vscode.ConfigurationTarget.Workspace);
-								let serverList:any = imConfig.get("NSPS");
-								for (let i = 0; i < serverList.length; i++) {
-									if (serverList[i].ip === ip) {
-										serverList[i].port = '';
-									}
-								}
-							}
 						} else {	
 							await this.updatePort();			
 						}
@@ -2420,8 +2395,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 		const portConfig = vscode.workspace.getConfiguration('workflowManager');
 		let wfmPort = await vscode.window.showInputBox({ prompt: 'Enter Port for NSP Workflow Manager...' });
-		portConfig.update('port', wfmPort, vscode.ConfigurationTarget.Workspace);
-		
+
 		let serverList:any = portConfig.get("NSPS");
 		let activeServer = portConfig.get("activeServer");
 		for (let i = 0; i < serverList.length; i++) {
@@ -2438,7 +2412,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 		if (imConfig) {
 			let imPort = await vscode.window.showInputBox({ prompt: 'Enter Port for NSP Intent Manager...' });
-			imConfig.update('port', imPort, vscode.ConfigurationTarget.Workspace);
 			
 			let serverList:any = imConfig.get("NSPS");
 			let activeServer = imConfig.get("activeServer");

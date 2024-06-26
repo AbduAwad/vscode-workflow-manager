@@ -56,11 +56,6 @@
             }
           }
         },
-        "workflowManager.port": {
-          "type": "string",
-          "scope": "window",
-          "description": "NSP WFM port."
-        },
         "workflowManager.localStorage.enable": {
           "type": "boolean",
           "default": false,
