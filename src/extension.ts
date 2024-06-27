@@ -33,19 +33,19 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 		nspServerStatusBar.show();
 	}
 
-	if (imConfig.get("activeServer") !== undefined) {
+	if (imConfig.get("activeServer") !== undefined) { 
 		let imNSPS:any = imConfig.get("NSPS") ?? [];
 		let wfmNSPS:any = wfmConfig.get("NSPS") ?? [];
 
 		let wfmNSPSMap = new Map();
-		wfmNSPS.forEach(item => {
+		wfmNSPS.forEach(item => { // update the wfm nsp map
 			wfmNSPSMap.set(item.id, item);
 		});
 
-		imNSPS.forEach(imItem => {
+		imNSPS.forEach(imItem => { // update the wfm im NSP list
 			let wfmItem = wfmNSPSMap.get(imItem.id);
 			if (wfmItem) {
-				if (imItem.port === "443") {
+				if (imItem.port === "443" || !imItem.port) {
 					wfmItem.port = imItem.port;
 				}
 			} else {
@@ -147,7 +147,7 @@ export async function activate(context: vscode.ExtensionContext) { // Ran upon e
 					imNSPS.forEach(imItem => {
 						let wfmItem = wfmNSPSMap.get(imItem.id);
 						if (wfmItem) {
-							if (imItem.port === "443") {
+							if (imItem.port === "443" || !imItem.port) {
 								wfmItem.port = imItem.port;
 							}
 						} else {

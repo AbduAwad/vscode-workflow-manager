@@ -2244,7 +2244,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			let ip = wfmProviderUtils.parseIPFromQuickPickSelection(selection);
 
 			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
-				config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 				const portConfig = vscode.workspace.getConfiguration('workflowManager');
 				let serverList:any = portConfig.get("NSPS");
 				
@@ -2257,6 +2256,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 						await this.updateIMPort();
 					}
 				}
+				await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 				statusbar_server.text = 'NSP: ' + ip;
 				quickPick.hide();
 				quickPick.dispose();
@@ -2272,7 +2272,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 					const portConfig = vscode.workspace.getConfiguration('workflowManager');
 					let serverList:any = portConfig.get("NSPS");
-					config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);	
+					
 
 					if (!(await wfmProviderUtils.isPortAssociated(serverList, ip))) {
 						let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
@@ -2283,6 +2283,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 							await this.updateIMPort();			
 						}
 					}
+					await config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);	
 					statusbar_server.text = 'NSP: ' + ip;
 					quickPick.hide();
 					quickPick.dispose();
@@ -2319,7 +2320,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 			vscode.window.showErrorMessage('Server with ID or IP already exists');
 		} else {
 			updatedServers.push(server);
-			config.update('NSPS', updatedServers, vscode.ConfigurationTarget.Global);
+			await config.update('NSPS', updatedServers, vscode.ConfigurationTarget.Global);
 			vscode.window.showInformationMessage('Server: ' + id + ' | ' + ip + ' added!');
 		}
 	}
