@@ -5,6 +5,7 @@
 */
 
 import * as vscode from 'vscode';
+import { wfmProviderUtils } from './WorkflowManagerProviderUtils';
 
 const DECORATION_SIGNED: vscode.FileDecoration =    new vscode.FileDecoration(
 	'🔒', 'Signed', new vscode.ThemeColor('list.deemphasizedForeground')
@@ -2240,22 +2241,14 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 
 		quickPick.onDidChangeSelection(async selection => { // when a server is selected
 			
-			let ip = selection[0].label;
-			const ipRegex = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
-			const match = ip.match(ipRegex);
-			if (match) {
-				ip =  match[0];
-			} else {
-				vscode.window.showErrorMessage("Not a valid IP address");
-				return;
-			}
+			let ip = wfmProviderUtils.parseIPFromQuickPickSelection(selection);
 
 			if (await secretStorage.get(ip + '_username') != undefined && await secretStorage.get(ip + '_password') != undefined) {
 				config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);
 				const portConfig = vscode.workspace.getConfiguration('workflowManager');
 				let serverList:any = portConfig.get("NSPS");
 				
-				if (!(await this.isPortAssociated(serverList, ip))) {
+				if (!(await wfmProviderUtils.isPortAssociated(serverList, ip))) {
 					let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
 					if (is_standard_port == 'Yes') {
 						await this.setStandardPort(serverList, ip, config);
@@ -2281,7 +2274,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 					let serverList:any = portConfig.get("NSPS");
 					config.update('activeServer', ip, vscode.ConfigurationTarget.Workspace);	
 
-					if (!(await this.isPortAssociated(serverList, ip))) {
+					if (!(await wfmProviderUtils.isPortAssociated(serverList, ip))) {
 						let is_standard_port = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'Connect to standard port?' });
 						if (is_standard_port == 'Yes') {
 							await this.setStandardPort(serverList, ip, portConfig);
@@ -2347,15 +2340,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		removeQuickPick.show();
 		await removeQuickPick.onDidChangeSelection(async selection => {
 			if (selection[0]) {
-				let ip = selection[0].label;
-				const ipRegex = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
-				const match = ip.match(ipRegex);
-				if (match) {
-					ip =  match[0];
-				} else {
-					vscode.window.showErrorMessage("No IP address found in the input string");
-					return;
-				}
+				let ip = wfmProviderUtils.parseIPFromQuickPickSelection(selection);
 				await vscode.window.showWarningMessage('Are you sure you want to remove ' + selection[0].label + '?', 'Yes', 'No').then(async (value) => {
 					if (value === 'Yes') {
 						updatedServers = this.removeObjectByIp(updatedServers, ip);
@@ -2384,15 +2369,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		
 		await resetQuickPick.onDidChangeSelection(async selection => {
 			if (selection[0]) {
-				let ip = selection[0].label;
-				const ipRegex = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
-				const match = ip.match(ipRegex);
-				if (match) {
-					ip =  match[0];
-				} else {
-					throw new Error("No IP address found in the input string");
-				}
-
+				let ip = wfmProviderUtils.parseIPFromQuickPickSelection(selection);
 				const usernameInput: string = await vscode.window.showInputBox({ prompt: 'Enter Username...' }) ?? '';
 				const passwordInput: string = await vscode.window.showInputBox({ password: true,  prompt: 'Enter Password...' }) ?? '';
 				
@@ -2418,23 +2395,6 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 				}
 			}
 		});
-	}
-
-	/**
-	 * Utility Method to check wether a port is associated with an IP in the global config's NSP List
-	 * @param {Array<any>} serverList - The list of servers from the global config
-	 * @param {string} ip - The ip address of the server to check if it has a port
-	*/
-	public async isPortAssociated(serverList: Array<any>, ip: string) {
-		for (let i = 0; i < serverList.length; i++) {
-			if (serverList[i].ip === ip) {
-				if (serverList[i].port != undefined) {
-					return true;
-				} 
-				return false;
-			}
-		}
-		return false;
 	}
 
 	/**
