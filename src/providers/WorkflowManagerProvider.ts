@@ -1104,8 +1104,7 @@ export class WorkflowManagerProvider implements vscode.FileSystemProvider, vscod
 		// update workflow view cache
 		let json = await response.json();
 		let entry = json.response.data;
-		const size = data.length;
-		this.workflow_views[name].size = size;
+		this.pluginLogs.info("View Data: "+entry);
 		this.saveBackupLocally(name, data);
 	}
 
